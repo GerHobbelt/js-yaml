@@ -1,6 +1,6 @@
 {
   "name": "js-yaml",
-  "version": "3.5.2",
+  "version": "3.5.3",
   "description": "YAML 1.2 parser and serializer",
   "keywords": [
     "yaml",
@@ -36,7 +36,6 @@
     "browserify": "14.3.0",
     "codemirror": "5.25.2",
     "eslint": "3.19.0",
-    "eslint-plugin-nodeca": "1.0.3",
     "istanbul": "0.4.5",
     "mocha": "3.3.0",
     "uglify-js": "2.8.22"
