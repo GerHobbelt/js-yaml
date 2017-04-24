@@ -1,6 +1,6 @@
 {
   "name": "js-yaml",
-  "version": "3.5.5",
+  "version": "3.6.0",
   "description": "YAML 1.2 parser and serializer",
   "keywords": [
     "yaml",
@@ -39,9 +39,6 @@
     "istanbul": "0.4.5",
     "mocha": "3.3.0",
     "uglify-js": "2.8.22"
-  },
-  "browser": {
-    "buffer": false
   },
   "scripts": {
     "test": "make test"
