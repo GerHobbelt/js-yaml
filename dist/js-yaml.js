@@ -218,7 +218,8 @@ function State(options) {
   this.noRefs       = options['noRefs'] || false;
   this.noCompatMode = options['noCompatMode'] || false;
   this.condenseFlow = options['condenseFlow'] || false;
-  this.quoteKeys = options['quoteKeys'] || false;
+  // accept a `quoteKeys` option *explicitly* set to FALSE:
+  this.quoteKeys    = (options['quoteKeys'] != null ? options['quoteKeys'] : !!this.condenseFlow);
   if (this.quoteKeys) {
     if (this.quoteKeys === true) {
       this.quoteKeys = '"';
@@ -668,7 +669,7 @@ function writeFlowMapping(state, level, object) {
     pairBuffer += state.dump;
     pairBuffer += state.quoteKeys || '';
     pairBuffer += ':';
-    if (!(state.condenseFlow && state.quoteKeys)) {
+    if (!state.condenseFlow) {
       pairBuffer += ' ';
     }
 
