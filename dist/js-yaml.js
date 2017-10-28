@@ -218,6 +218,14 @@ function State(options) {
   this.noRefs       = options['noRefs'] || false;
   this.noCompatMode = options['noCompatMode'] || false;
   this.condenseFlow = options['condenseFlow'] || false;
+  this.quoteKeys = options['quoteKeys'] || false;
+  if (this.quoteKeys) {
+    if (this.quoteKeys === true) {
+      this.quoteKeys = '"';
+    } else if (this.quoteKeys !== '\'' && this.quoteKeys !== '"') {
+      this.quoteKeys = false;
+    }
+  }
 
   this.implicitTypes = this.schema.compiledImplicit;
   this.explicitTypes = this.schema.compiledExplicit;
@@ -644,7 +652,7 @@ function writeFlowMapping(state, level, object) {
       pairBuffer;
 
   for (index = 0, length = objectKeyList.length; index < length; index += 1) {
-    pairBuffer = state.condenseFlow ? '"' : '';
+    pairBuffer = state.quoteKeys || '';
 
     if (index !== 0) pairBuffer += ', ';
 
@@ -657,7 +665,12 @@ function writeFlowMapping(state, level, object) {
 
     if (state.dump.length > 1024) pairBuffer += '? ';
 
-    pairBuffer += state.dump + (state.condenseFlow ? '"' : '') + ':' + (state.condenseFlow ? '' : ' ');
+    pairBuffer += state.dump;
+    pairBuffer += state.quoteKeys || '';
+    pairBuffer += ':';
+    if (!(state.condenseFlow && state.quoteKeys)) {
+      pairBuffer += ' ';
+    }
 
     if (!writeNode(state, level, objectValue, false, false)) {
       continue; // Skip this pair because of invalid value.
