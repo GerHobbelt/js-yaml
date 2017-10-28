@@ -1,5 +1,5 @@
 {
-  "name": "js-yaml",
+  "name": "@gerhobbelt/js-yaml",
   "version": "3.10.0",
   "description": "YAML 1.2 parser and serializer",
   "keywords": [
@@ -41,6 +41,7 @@
     "uglify-js": "3.1.5"
   },
   "scripts": {
-    "test": "make test"
+    "test": "make test",
+    "pub": "npm publish --access public"
   }
 }
