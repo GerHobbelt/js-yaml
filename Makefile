@@ -83,7 +83,7 @@ browserify:
 	rm -rf ./dist
 	mkdir dist
 	# Browserify
-	( echo -n "/* ${NPM_PACKAGE} ${NPM_VERSION} ${GITHUB_PROJ} */" ; \
+	( echo "/* ${NPM_PACKAGE} ${NPM_VERSION} ${GITHUB_PROJ} */" ; \
 		./node_modules/.bin/browserify -r ./ -s jsyaml \
 		) > dist/js-yaml.js
 	# Minify
