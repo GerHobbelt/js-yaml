@@ -1,4 +1,5 @@
 - !!js/module |
+  var os = require('os');
   module.exports = {
     v: 42,
     f: function(x, y) {
@@ -13,5 +14,6 @@
         second: 'sum',
         third: result
       };
-    }
+    },
+    r: os.homedir()
   }

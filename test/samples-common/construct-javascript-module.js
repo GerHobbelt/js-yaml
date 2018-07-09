@@ -2,7 +2,7 @@
 
 
 var assert = require('assert');
-
+var os = require('os');
 
 function testHandler(actual) {
   var expected = testHandler.expected;
@@ -26,6 +26,10 @@ function testHandler(actual) {
   assert.deepEqual(
     actual[0].e('book'),
     expected[0].e('book'));
+
+  assert.deepEqual(
+    actual[0].r,
+    expected[0].r);
 }
 
 testHandler.expected = [
@@ -43,7 +47,8 @@ testHandler.expected = [
         second: 'sum',
         third: result
       };
-    }
+    },
+    r: os.homedir()
   }
 ];
 
