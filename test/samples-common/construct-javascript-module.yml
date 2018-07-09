@@ -1,0 +1,17 @@
+- !!js/module |
+  module.exports = {
+    v: 42,
+    f: function(x, y) {
+      return x + y;
+    },
+    c: (x, y) => x + y,
+    e: function(foo) {
+      var result = 'There is my ' + foo + ' at the table.';
+
+      return {
+        first: 42,
+        second: 'sum',
+        third: result
+      };
+    }
+  }
