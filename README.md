@@ -4,7 +4,7 @@ JS-YAML - YAML 1.2 parser / writer for JavaScript
 ### dump
 ``` none
 !!null
-  "blank" -> '' +++++
+  "blank"       -> '' +++++
   "canonical"   -> "~"
   "lowercase"   => "null"
   "uppercase"   -> "NULL"
