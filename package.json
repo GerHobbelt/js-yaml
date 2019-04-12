@@ -1,6 +1,6 @@
 {
   "name": "@gerhobbelt/js-yaml",
-  "version": "3.10.1-5",
+  "version": "3.11.1-6",
   "description": "YAML 1.2 parser and serializer",
   "keywords": [
     "yaml",

@@ -1,3 +1,10 @@
+3.11.0 / 2018-03-05
+-------------------
+
+- Fix dump in bin/octal/hex formats for negative integers, #399.
+- Add arrow functions suport for `!!js/function`.
+
+
 3.10.1 / 2018-02-04
 -------------------
 
