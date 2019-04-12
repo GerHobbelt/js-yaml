@@ -1,5 +1,5 @@
-/* @gerhobbelt/js-yaml 3.10.1-3 https://github.com/nodeca/@gerhobbelt/js-yaml */
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.jsyaml = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/":[function(require,module,exports){
+/* @gerhobbelt/js-yaml 3.11.1-6 https://github.com/nodeca/@gerhobbelt/js-yaml */
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.jsyaml = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({"/":[function(require,module,exports){
 'use strict';
 
 
@@ -2573,10 +2573,10 @@ function load(input, options) {
 
 function safeLoadAll(input, output, options) {
   if (typeof output === 'function') {
-    loadAll(input, output, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options));
-  } else {
-    return loadAll(input, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options));
+  return loadAll(input, output, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options));
   }
+    return loadAll(input, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options));
+
 }
 
 
@@ -3419,10 +3419,11 @@ module.exports = new Type('tag:yaml.org,2002:int', {
   construct: constructYamlInteger,
   predicate: isInteger,
   represent: {
-    binary:      function (object) { return '0b' + object.toString(2); },
-    octal:       function (object) { return '0'  + object.toString(8); },
-    decimal:     function (object) { return        object.toString(10); },
-    hexadecimal: function (object) { return '0x' + object.toString(16).toUpperCase(); }
+    binary:      function (obj) { return obj >= 0 ? '0b' + obj.toString(2) : '-0b' + obj.toString(2).slice(1); },
+    octal:       function (obj) { return obj >= 0 ? '0'  + obj.toString(8) : '-0'  + obj.toString(8).slice(1); },
+    decimal:     function (obj) { return obj.toString(10); },
+    /* eslint-disable max-len */
+    hexadecimal: function (obj) { return obj >= 0 ? '0x' + obj.toString(16).toUpperCase() :  '-0x' + obj.toString(16).toUpperCase().slice(1); }
   },
   defaultStyle: 'decimal',
   styleAliases: {
@@ -3447,8 +3448,8 @@ var esprima;
 //
 try {
   // workaround to exclude package from browserify list.
-  var _require = require;
-  esprima = _require('esprima');
+  // eslint-disable-next-line no-eval
+  esprima = eval('require')('esprima');
 } catch (_) {
   /*global window */
   if (typeof window !== 'undefined') { esprima = window.esprima; }
@@ -3466,7 +3467,8 @@ function resolveJavascriptFunction(data) {
     if (ast.type                    !== 'Program'             ||
         ast.body.length             !== 1                     ||
         ast.body[0].type            !== 'ExpressionStatement' ||
-        ast.body[0].expression.type !== 'FunctionExpression') {
+        (ast.body[0].expression.type !== 'ArrowFunctionExpression' &&
+          ast.body[0].expression.type !== 'FunctionExpression')) {
       return false;
     }
 
@@ -3487,7 +3489,8 @@ function constructJavascriptFunction(data) {
   if (ast.type                    !== 'Program'             ||
       ast.body.length             !== 1                     ||
       ast.body[0].type            !== 'ExpressionStatement' ||
-      ast.body[0].expression.type !== 'FunctionExpression') {
+      (ast.body[0].expression.type !== 'ArrowFunctionExpression' &&
+        ast.body[0].expression.type !== 'FunctionExpression')) {
     throw new Error('Failed to resolve function');
   }
 

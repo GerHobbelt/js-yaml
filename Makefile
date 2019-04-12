@@ -24,6 +24,10 @@ lint:
 	./node_modules/.bin/eslint .
 
 
+fix:
+	./node_modules/.bin/eslint --fix .
+
+
 test: lint
 	@node -e "require('./bower.json')"
 	@node -e "require('./package.json')"
@@ -96,5 +100,5 @@ todo:
 	grep 'TODO' -n -r ./lib 2>/dev/null || test true
 
 
-.PHONY: publish lint test dev-deps gh-pages todo coverage demo
+.PHONY: publish lint fix test dev-deps gh-pages todo coverage demo
 .SILENT: help lint test todo coverage
