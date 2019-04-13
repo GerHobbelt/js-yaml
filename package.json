@@ -50,5 +50,8 @@
     "fix": "make fix",
     "build": "make browserify && npm test",
     "pub": "npm publish --access public"
+  },
+  "engines": {
+    "node": ">=4.0.0"
   }
 }
