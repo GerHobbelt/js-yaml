@@ -1,4 +1,4 @@
-/* @gerhobbelt/js-yaml 3.11.1-6 https://github.com/nodeca/@gerhobbelt/js-yaml */
+/* @gerhobbelt/js-yaml 3.13.1-6 https://github.com/nodeca/@gerhobbelt/js-yaml */
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.jsyaml = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({"/":[function(require,module,exports){
 'use strict';
 
@@ -218,16 +218,19 @@ function encodeHex(character) {
 }
 
 function State(options) {
-  this.schema       = options['schema'] || DEFAULT_FULL_SCHEMA;
-  this.indent       = Math.max(1, (options['indent'] || 2));
-  this.skipInvalid  = options['skipInvalid'] || false;
-  this.flowLevel    = (common.isNothing(options['flowLevel']) ? -1 : options['flowLevel']);
-  this.styleMap     = compileStyleMap(this.schema, options['styles'] || null);
-  this.sortKeys     = options['sortKeys'] || false;
-  this.lineWidth    = options['lineWidth'] || 80;
-  this.noRefs       = options['noRefs'] || false;
-  this.noCompatMode = options['noCompatMode'] || false;
-  this.condenseFlow = options['condenseFlow'] || false;
+  this.schema        = options['schema'] || DEFAULT_FULL_SCHEMA;
+  this.indent        = Math.max(1, (options['indent'] || 2));
+  this.noArrayIndent = options['noArrayIndent'] || false;
+  this.skipInvalid   = options['skipInvalid'] || false;
+  this.flowLevel     = (common.isNothing(options['flowLevel']) ? -1 : options['flowLevel']);
+  this.styleMap      = compileStyleMap(this.schema, options['styles'] || null);
+  this.sortKeys      = options['sortKeys'] || false;
+  this.lineWidth     = options['lineWidth'] || 80;
+  this.noRefs        = options['noRefs'] || false;
+  this.noCompatMode  = options['noCompatMode'] || false;
+  this.condenseFlow  = options['condenseFlow'] || false;
+  this.scalarQuoteStyle = options['scalarQuoteStyle'] || null;
+  this.forceSeqFlow = options['forceSeqFlow'] || false;
   // accept a `quoteKeys` option *explicitly* set to FALSE:
   this.quoteKeys    = (options['quoteKeys'] != null ? options['quoteKeys'] : !!this.condenseFlow);
   if (this.quoteKeys) {
@@ -315,14 +318,7 @@ function isPlainSafe(c) {
   // where nb-char ::= c-printable - b-char - c-byte-order-mark.
   return isPrintable(c) && c !== 0xFEFF
     // - c-flow-indicator
-    && c !== CHAR_COMMA
-    && c !== CHAR_LEFT_SQUARE_BRACKET
-    && c !== CHAR_RIGHT_SQUARE_BRACKET
-    && c !== CHAR_LEFT_CURLY_BRACKET
-    && c !== CHAR_RIGHT_CURLY_BRACKET
-    // - ":" - "#"
-    && c !== CHAR_COLON
-    && c !== CHAR_SHARP;
+    && c !== CHAR_COLON;
 }
 
 // Simplified test for values allowed as the first character in plain style.
@@ -368,6 +364,9 @@ var STYLE_PLAIN   = 1,
     STYLE_FOLDED  = 4,
     STYLE_DOUBLE  = 5;
 
+var SCALAR_QUOTE_STYLE_SINGLE = 'single',
+    SCALAR_QUOTE_STYLE_DOUBLE = 'double';
+
 // Determines which scalar styles are possible and returns the preferred style.
 // lineWidth = -1 => no limit.
 // Pre-conditions: str.length > 0.
@@ -393,7 +392,7 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
       if (!isPrintable(char)) {
         return STYLE_DOUBLE;
       }
-      plain = plain && isPlainSafe(char);
+      plain = plain && (isPlainSafe(char) && !isWhitespace(string.charCodeAt(i + 1)));
     }
   } else {
     // Case: block styles permitted.
@@ -412,12 +411,14 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
       } else if (!isPrintable(char)) {
         return STYLE_DOUBLE;
       }
-      plain = plain && isPlainSafe(char);
+      if (!isPlainSafe(char)) {
+        plain = plain && !isWhitespace(string.charCodeAt(i + 1));
+      }
     }
     // in case the end is missing a \n
     hasFoldableLine = hasFoldableLine || (shouldTrackWidth &&
       (i - previousLineBreak - 1 > lineWidth &&
-       string[previousLineBreak + 1] !== ' '));
+      string[previousLineBreak + 1] !== ' '));
   }
   // Although every style can represent \n without escaping, prefer block styles
   // for multiline, since they're more readable and they don't add empty lines.
@@ -446,6 +447,9 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
 function writeScalar(state, string, level, iskey) {
   state.dump = (function () {
     if (string.length === 0) {
+      if (state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_DOUBLE) {
+        return '""';
+      }
       return "''";
     }
     if (!state.noCompatMode &&
@@ -472,7 +476,17 @@ function writeScalar(state, string, level, iskey) {
       return testImplicitResolving(state, string);
     }
 
-    switch (chooseScalarStyle(string, singleLineOnly, state.indent, lineWidth, testAmbiguity)) {
+    var scalarStyle = chooseScalarStyle(string, singleLineOnly, state.indent, lineWidth, testAmbiguity);
+
+    if (iskey !== true && (scalarStyle === STYLE_PLAIN || scalarStyle === STYLE_SINGLE)) {
+      if (state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_SINGLE) {
+        scalarStyle = STYLE_SINGLE;
+      } else if (state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_DOUBLE) {
+        scalarStyle = STYLE_DOUBLE;
+      }
+    }
+
+    switch (scalarStyle) {
       case STYLE_PLAIN:
         return string;
       case STYLE_SINGLE:
@@ -861,13 +875,14 @@ function writeNode(state, level, object, block, compact, iskey) {
         }
       }
     } else if (type === '[object Array]') {
-      if (block && (state.dump.length !== 0)) {
-        writeBlockSequence(state, level, state.dump, compact);
+      var arrayLevel = (state.noArrayIndent && (level > 0)) ? level - 1 : level;
+      if (block && (state.dump.length !== 0) && state.forceSeqFlow === false) {
+        writeBlockSequence(state, arrayLevel, state.dump, compact);
         if (duplicate) {
           state.dump = '&ref_' + duplicateIndex + state.dump;
         }
       } else {
-        writeFlowSequence(state, level, state.dump);
+        writeFlowSequence(state, arrayLevel, state.dump);
         if (duplicate) {
           state.dump = '&ref_' + duplicateIndex + ' ' + state.dump;
         }
@@ -885,7 +900,6 @@ function writeNode(state, level, object, block, compact, iskey) {
       state.dump = '!<' + state.tag + '> ' + state.dump;
     }
   }
-
   return true;
 }
 
@@ -1029,6 +1043,8 @@ var PATTERN_TAG_HANDLE            = /^(?:!|!!|![a-z\-]+!)$/i;
 var PATTERN_TAG_URI               = /^(?:!|[^,\[\]\{\}])(?:%[0-9a-f]{2}|[0-9a-z\-#;\/\?:@&=\+\$,_\.!~\*'\(\)\[\]])*$/i;
 
 
+function _class(obj) { return Object.prototype.toString.call(obj); }
+
 function is_EOL(c) {
   return (c === 0x0A/* LF */) || (c === 0x0D/* CR */);
 }
@@ -1126,14 +1142,20 @@ for (var i = 0; i < 256; i++) {
 }
 
 function addMetaInformation(state, line) {
-  if (state.result._yaml) {
+  if (!state.result || state.result._yaml) {
     return;
   }
 
   if (typeof state.result === 'string') {
+    if (state.result === 'null') {
+      return;
+    }
+    /*eslint-disable no-new-wrappers*/
     state.result = new String(state.result);
   } else if (typeof state.result === 'number') {
     state.result = new Number(state.result);
+    /*eslint-enable no-new-wrappers*/
+
   }
 
   if (!line) {
@@ -1304,6 +1326,31 @@ function mergeMappings(state, destination, source, overridableKeys) {
 function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode, startLine, startPos) {
   var index, quantity;
 
+  // The output is a plain object here, so keys can only be strings.
+  // We need to convert keyNode to a string, but doing so can hang the process
+  // (deeply nested arrays that explode exponentially using aliases).
+  if (Array.isArray(keyNode)) {
+    keyNode = Array.prototype.slice.call(keyNode);
+
+    for (index = 0, quantity = keyNode.length; index < quantity; index += 1) {
+      if (Array.isArray(keyNode[index])) {
+        throwError(state, 'nested arrays are not supported inside keys');
+      }
+
+      if (typeof keyNode === 'object' && _class(keyNode[index]) === '[object Object]') {
+        keyNode[index] = '[object Object]';
+      }
+    }
+  }
+
+  // Avoid code execution in load() via toString property
+  // (still use its own toString for arrays, timestamps,
+  // and whatever user schema extensions happen to have @@toStringTag)
+  if (typeof keyNode === 'object' && _class(keyNode) === '[object Object]') {
+    keyNode = '[object Object]';
+  }
+
+
   keyNode = String(keyNode);
 
   if (_result === null) {
@@ -1378,6 +1425,10 @@ function skipSeparationSpace(state, allowComments, checkIndent) {
       while (ch === 0x20/* Space */) {
         state.lineIndent++;
         ch = state.input.charCodeAt(++state.position);
+      }
+
+      if (ch === 0x09 /* Tab */) {
+        throwError(state, 'A YAML file cannot contain tabs as indentation');
       }
     } else {
       break;
@@ -1835,6 +1886,10 @@ function readBlockScalar(state, nodeIndent) {
            (ch === 0x20/* Space */)) {
       state.lineIndent++;
       ch = state.input.charCodeAt(++state.position);
+    }
+
+    if (ch === 0x09 /* Tab */) {
+      throwError(state, 'tabs indentation in block scalars is not allowed');
     }
 
     if (!detectedIndent && state.lineIndent > textIndent) {
@@ -2851,11 +2906,12 @@ module.exports = Schema.DEFAULT = new Schema({
   explicit: [
     require('../type/js/undefined'),
     require('../type/js/regexp'),
-    require('../type/js/function')
+    require('../type/js/function'),
+    require('../type/js/module')
   ]
 });
 
-},{"../schema":7,"../type/js/function":18,"../type/js/regexp":19,"../type/js/undefined":20,"./default_safe":10}],10:[function(require,module,exports){
+},{"../schema":7,"../type/js/function":18,"../type/js/module":19,"../type/js/regexp":20,"../type/js/undefined":21,"./default_safe":10}],10:[function(require,module,exports){
 // JS-YAML's default schema for `safeLoad` function.
 // It is not described in the YAML specification.
 //
@@ -2885,7 +2941,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":7,"../type/binary":14,"../type/merge":22,"../type/omap":24,"../type/pairs":25,"../type/set":27,"../type/timestamp":29,"./core":8}],11:[function(require,module,exports){
+},{"../schema":7,"../type/binary":14,"../type/merge":23,"../type/omap":25,"../type/pairs":26,"../type/set":28,"../type/timestamp":30,"./core":8}],11:[function(require,module,exports){
 // Standard YAML's Failsafe schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2802346
 
@@ -2904,7 +2960,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":7,"../type/map":21,"../type/seq":26,"../type/str":28}],12:[function(require,module,exports){
+},{"../schema":7,"../type/map":22,"../type/seq":27,"../type/str":29}],12:[function(require,module,exports){
 // Standard YAML's JSON schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2803231
 //
@@ -2931,7 +2987,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":7,"../type/bool":15,"../type/float":16,"../type/int":17,"../type/null":23,"./failsafe":11}],13:[function(require,module,exports){
+},{"../schema":7,"../type/bool":15,"../type/float":16,"../type/int":17,"../type/null":24,"./failsafe":11}],13:[function(require,module,exports){
 'use strict';
 
 var YAMLException = require('./exception');
@@ -3532,8 +3588,14 @@ function constructJavascriptFunction(data) {
 
   // Esprima's ranges include the first '{' and the last '}' characters on
   // function expressions. So cut them out.
+  if (ast.body[0].expression.body.type === 'BlockStatement') {
+    /*eslint-disable no-new-func*/
+    return new Function(params, source.slice(body[0] + 1, body[1] - 1));
+  }
+  // ES6 arrow functions can omit the BlockStatement. In that case, just return
+  // the body.
   /*eslint-disable no-new-func*/
-  return new Function(params, source.slice(body[0] + 1, body[1] - 1));
+  return new Function(params, 'return ' + source.slice(body[0], body[1]));
 }
 
 function representJavascriptFunction(object /*, style*/) {
@@ -3553,6 +3615,73 @@ module.exports = new Type('tag:yaml.org,2002:js/function', {
 });
 
 },{"../../type":13}],19:[function(require,module,exports){
+'use strict';
+
+var Type = require('../../type');
+var Module = require('module');
+var path = require('path');
+
+function requireFromString(code, filename, opts) {
+  if (typeof filename === 'object') {
+    opts = filename;
+    filename = null;
+  }
+
+  opts = opts || {};
+  filename = filename || '';
+
+  opts.appendPaths = opts.appendPaths || [];
+  opts.prependPaths = opts.prependPaths || [];
+
+  if (typeof code !== 'string') {
+    throw new Error('code must be a string, not ' + typeof code);
+  }
+
+  var paths = Module._nodeModulePaths(path.dirname(filename));
+
+  var parent = module.parent;
+  var m = new Module(filename, parent);
+  m.filename = filename;
+  m.paths = [].concat(opts.prependPaths).concat(paths).concat(opts.appendPaths);
+  m._compile(code, filename);
+
+  var exports = m.exports;
+  if (parent && parent.children) { parent.children.splice(parent.children.indexOf(m), 1); }
+
+  return exports;
+}
+
+function resolveJavascriptModule(data) {
+  if (data === null) return false;
+
+  try {
+    return requireFromString(data);
+  } catch (err) {
+    return false;
+  }
+}
+
+function constructJavascriptModule(data) {
+  return requireFromString(data);
+}
+
+function representJavascriptModule(object) {
+  return object.toString();
+}
+
+function isModule() {
+  return false;
+}
+
+module.exports = new Type('tag:yaml.org,2002:js/module', {
+  kind: 'scalar',
+  resolve: resolveJavascriptModule,
+  construct: constructJavascriptModule,
+  predicate: isModule,
+  represent: representJavascriptModule
+});
+
+},{"../../type":13,"module":31,"path":33}],20:[function(require,module,exports){
 'use strict';
 
 var Type = require('../../type');
@@ -3614,7 +3743,7 @@ module.exports = new Type('tag:yaml.org,2002:js/regexp', {
   represent: representJavascriptRegExp
 });
 
-},{"../../type":13}],20:[function(require,module,exports){
+},{"../../type":13}],21:[function(require,module,exports){
 'use strict';
 
 var Type = require('../../type');
@@ -3644,7 +3773,7 @@ module.exports = new Type('tag:yaml.org,2002:js/undefined', {
   represent: representJavascriptUndefined
 });
 
-},{"../../type":13}],21:[function(require,module,exports){
+},{"../../type":13}],22:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3654,7 +3783,7 @@ module.exports = new Type('tag:yaml.org,2002:map', {
   construct: function (data) { return data !== null ? data : {}; }
 });
 
-},{"../type":13}],22:[function(require,module,exports){
+},{"../type":13}],23:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3668,7 +3797,7 @@ module.exports = new Type('tag:yaml.org,2002:merge', {
   resolve: resolveYamlMerge
 });
 
-},{"../type":13}],23:[function(require,module,exports){
+},{"../type":13}],24:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3696,6 +3825,7 @@ module.exports = new Type('tag:yaml.org,2002:null', {
   construct: constructYamlNull,
   predicate: isNull,
   represent: {
+    blank: function () { return '';    },
     canonical: function () { return '~';    },
     lowercase: function () { return 'null'; },
     uppercase: function () { return 'NULL'; },
@@ -3704,7 +3834,7 @@ module.exports = new Type('tag:yaml.org,2002:null', {
   defaultStyle: 'lowercase'
 });
 
-},{"../type":13}],24:[function(require,module,exports){
+},{"../type":13}],25:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3750,7 +3880,7 @@ module.exports = new Type('tag:yaml.org,2002:omap', {
   construct: constructYamlOmap
 });
 
-},{"../type":13}],25:[function(require,module,exports){
+},{"../type":13}],26:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3805,7 +3935,7 @@ module.exports = new Type('tag:yaml.org,2002:pairs', {
   construct: constructYamlPairs
 });
 
-},{"../type":13}],26:[function(require,module,exports){
+},{"../type":13}],27:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3815,7 +3945,7 @@ module.exports = new Type('tag:yaml.org,2002:seq', {
   construct: function (data) { return data !== null ? data : []; }
 });
 
-},{"../type":13}],27:[function(require,module,exports){
+},{"../type":13}],28:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3846,7 +3976,7 @@ module.exports = new Type('tag:yaml.org,2002:set', {
   construct: constructYamlSet
 });
 
-},{"../type":13}],28:[function(require,module,exports){
+},{"../type":13}],29:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3856,7 +3986,7 @@ module.exports = new Type('tag:yaml.org,2002:str', {
   construct: function (data) { return data !== null ? data : ''; }
 });
 
-},{"../type":13}],29:[function(require,module,exports){
+},{"../type":13}],30:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -3912,7 +4042,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
   represent: representYamlTimestamp
 });
 
-},{"../type":13,"moment":30}],30:[function(require,module,exports){
+},{"../type":13,"moment":32}],31:[function(require,module,exports){
+
+},{}],32:[function(require,module,exports){
 //! moment.js
 
 ;(function (global, factory) {
@@ -8515,6 +8647,498 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     return hooks;
 
 })));
+
+},{}],33:[function(require,module,exports){
+(function (process){
+// .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
+// backported and transplited with Babel, with backwards-compat fixes
+
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// resolves . and .. elements in a path array with directory names there
+// must be no slashes, empty elements, or device names (c:\) in the array
+// (so also no leading and trailing slashes - it does not distinguish
+// relative and absolute paths)
+function normalizeArray(parts, allowAboveRoot) {
+  // if the path tries to go above the root, `up` ends up > 0
+  var up = 0;
+  for (var i = parts.length - 1; i >= 0; i--) {
+    var last = parts[i];
+    if (last === '.') {
+      parts.splice(i, 1);
+    } else if (last === '..') {
+      parts.splice(i, 1);
+      up++;
+    } else if (up) {
+      parts.splice(i, 1);
+      up--;
+    }
+  }
+
+  // if the path is allowed to go above the root, restore leading ..s
+  if (allowAboveRoot) {
+    for (; up--; up) {
+      parts.unshift('..');
+    }
+  }
+
+  return parts;
+}
+
+// path.resolve([from ...], to)
+// posix version
+exports.resolve = function() {
+  var resolvedPath = '',
+      resolvedAbsolute = false;
+
+  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
+    var path = (i >= 0) ? arguments[i] : process.cwd();
+
+    // Skip empty and invalid entries
+    if (typeof path !== 'string') {
+      throw new TypeError('Arguments to path.resolve must be strings');
+    } else if (!path) {
+      continue;
+    }
+
+    resolvedPath = path + '/' + resolvedPath;
+    resolvedAbsolute = path.charAt(0) === '/';
+  }
+
+  // At this point the path should be resolved to a full absolute path, but
+  // handle relative paths to be safe (might happen when process.cwd() fails)
+
+  // Normalize the path
+  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
+    return !!p;
+  }), !resolvedAbsolute).join('/');
+
+  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
+};
+
+// path.normalize(path)
+// posix version
+exports.normalize = function(path) {
+  var isAbsolute = exports.isAbsolute(path),
+      trailingSlash = substr(path, -1) === '/';
+
+  // Normalize the path
+  path = normalizeArray(filter(path.split('/'), function(p) {
+    return !!p;
+  }), !isAbsolute).join('/');
+
+  if (!path && !isAbsolute) {
+    path = '.';
+  }
+  if (path && trailingSlash) {
+    path += '/';
+  }
+
+  return (isAbsolute ? '/' : '') + path;
+};
+
+// posix version
+exports.isAbsolute = function(path) {
+  return path.charAt(0) === '/';
+};
+
+// posix version
+exports.join = function() {
+  var paths = Array.prototype.slice.call(arguments, 0);
+  return exports.normalize(filter(paths, function(p, index) {
+    if (typeof p !== 'string') {
+      throw new TypeError('Arguments to path.join must be strings');
+    }
+    return p;
+  }).join('/'));
+};
+
+
+// path.relative(from, to)
+// posix version
+exports.relative = function(from, to) {
+  from = exports.resolve(from).substr(1);
+  to = exports.resolve(to).substr(1);
+
+  function trim(arr) {
+    var start = 0;
+    for (; start < arr.length; start++) {
+      if (arr[start] !== '') break;
+    }
+
+    var end = arr.length - 1;
+    for (; end >= 0; end--) {
+      if (arr[end] !== '') break;
+    }
+
+    if (start > end) return [];
+    return arr.slice(start, end - start + 1);
+  }
+
+  var fromParts = trim(from.split('/'));
+  var toParts = trim(to.split('/'));
+
+  var length = Math.min(fromParts.length, toParts.length);
+  var samePartsLength = length;
+  for (var i = 0; i < length; i++) {
+    if (fromParts[i] !== toParts[i]) {
+      samePartsLength = i;
+      break;
+    }
+  }
+
+  var outputParts = [];
+  for (var i = samePartsLength; i < fromParts.length; i++) {
+    outputParts.push('..');
+  }
+
+  outputParts = outputParts.concat(toParts.slice(samePartsLength));
+
+  return outputParts.join('/');
+};
+
+exports.sep = '/';
+exports.delimiter = ':';
+
+exports.dirname = function (path) {
+  if (typeof path !== 'string') path = path + '';
+  if (path.length === 0) return '.';
+  var code = path.charCodeAt(0);
+  var hasRoot = code === 47 /*/*/;
+  var end = -1;
+  var matchedSlash = true;
+  for (var i = path.length - 1; i >= 1; --i) {
+    code = path.charCodeAt(i);
+    if (code === 47 /*/*/) {
+        if (!matchedSlash) {
+          end = i;
+          break;
+        }
+      } else {
+      // We saw the first non-path separator
+      matchedSlash = false;
+    }
+  }
+
+  if (end === -1) return hasRoot ? '/' : '.';
+  if (hasRoot && end === 1) {
+    // return '//';
+    // Backwards-compat fix:
+    return '/';
+  }
+  return path.slice(0, end);
+};
+
+function basename(path) {
+  if (typeof path !== 'string') path = path + '';
+
+  var start = 0;
+  var end = -1;
+  var matchedSlash = true;
+  var i;
+
+  for (i = path.length - 1; i >= 0; --i) {
+    if (path.charCodeAt(i) === 47 /*/*/) {
+        // If we reached a path separator that was not part of a set of path
+        // separators at the end of the string, stop now
+        if (!matchedSlash) {
+          start = i + 1;
+          break;
+        }
+      } else if (end === -1) {
+      // We saw the first non-path separator, mark this as the end of our
+      // path component
+      matchedSlash = false;
+      end = i + 1;
+    }
+  }
+
+  if (end === -1) return '';
+  return path.slice(start, end);
+}
+
+// Uses a mixed approach for backwards-compatibility, as ext behavior changed
+// in new Node.js versions, so only basename() above is backported here
+exports.basename = function (path, ext) {
+  var f = basename(path);
+  if (ext && f.substr(-1 * ext.length) === ext) {
+    f = f.substr(0, f.length - ext.length);
+  }
+  return f;
+};
+
+exports.extname = function (path) {
+  if (typeof path !== 'string') path = path + '';
+  var startDot = -1;
+  var startPart = 0;
+  var end = -1;
+  var matchedSlash = true;
+  // Track the state of characters (if any) we see before our first dot and
+  // after any path separator we find
+  var preDotState = 0;
+  for (var i = path.length - 1; i >= 0; --i) {
+    var code = path.charCodeAt(i);
+    if (code === 47 /*/*/) {
+        // If we reached a path separator that was not part of a set of path
+        // separators at the end of the string, stop now
+        if (!matchedSlash) {
+          startPart = i + 1;
+          break;
+        }
+        continue;
+      }
+    if (end === -1) {
+      // We saw the first non-path separator, mark this as the end of our
+      // extension
+      matchedSlash = false;
+      end = i + 1;
+    }
+    if (code === 46 /*.*/) {
+        // If this is our first dot, mark it as the start of our extension
+        if (startDot === -1)
+          startDot = i;
+        else if (preDotState !== 1)
+          preDotState = 1;
+    } else if (startDot !== -1) {
+      // We saw a non-dot and non-path separator before our dot, so we should
+      // have a good chance at having a non-empty extension
+      preDotState = -1;
+    }
+  }
+
+  if (startDot === -1 || end === -1 ||
+      // We saw a non-dot character immediately before the dot
+      preDotState === 0 ||
+      // The (right-most) trimmed path component is exactly '..'
+      preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
+    return '';
+  }
+  return path.slice(startDot, end);
+};
+
+function filter (xs, f) {
+    if (xs.filter) return xs.filter(f);
+    var res = [];
+    for (var i = 0; i < xs.length; i++) {
+        if (f(xs[i], i, xs)) res.push(xs[i]);
+    }
+    return res;
+}
+
+// String.prototype.substr - negative index don't work in IE8
+var substr = 'ab'.substr(-1) === 'b'
+    ? function (str, start, len) { return str.substr(start, len) }
+    : function (str, start, len) {
+        if (start < 0) start = str.length + start;
+        return str.substr(start, len);
+    }
+;
+
+}).call(this,require('_process'))
+},{"_process":34}],34:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
 
 },{}]},{},[])("/")
 });
