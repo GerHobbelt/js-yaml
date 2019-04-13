@@ -193,6 +193,7 @@ output is shown on the right side after `=>` (default setting) or `->`:
 
 ``` none
 !!null
+  "blank"       -> '' +++++
   "canonical"   -> "~"
   "lowercase"   => "null"
   "uppercase"   -> "NULL"
