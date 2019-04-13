@@ -28,8 +28,10 @@
   },
   "dependencies": {
     "argparse": "1.0.10",
-    "esprima": "4.0.1",
     "moment": "^2.24.0"
+  },
+  "peerDependencies": {
+    "esprima": "4.0.1"
   },
   "devDependencies": {
     "ansi": "0.3.1",
