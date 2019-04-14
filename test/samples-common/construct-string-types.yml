@@ -107,7 +107,9 @@ blockIndentationIndicator:
 - |1
   explicit
 - >
- 	
+ 
+ x
+
  detected
 strip: >-
 
