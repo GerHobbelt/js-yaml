@@ -21,7 +21,7 @@ suite('Loader', function () {
       var expected = require(path.resolve(samplesDir, jsFile));
       var actual   = [];
 
-      var returned = yaml.loadAll(fs.readFileSync(yamlFile, { encoding: 'utf8' }), function (doc) {
+      var returned = yaml.loadAll(fs.readFileSync(yamlFile, { encoding: 'utf8' }), function (doc /*, index, input, options */) {
         actual.push(doc);
       }, {
         filename: yamlFile,
