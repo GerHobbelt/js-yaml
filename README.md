@@ -98,7 +98,7 @@ try {
 
 **Recommended loading way.** Parses `string` as single YAML document. Returns a JavaScript
 object or throws `YAMLException` on error. By default, does not support regexps,
-functions and undefined. This method is safe for untrusted data.
+functions, modules and undefined. This method is safe for untrusted data.
 
 options:
 
@@ -117,14 +117,16 @@ options:
     (`!!js/undefined`, `!!js/regexp` and `!!js/function`):
     http://yaml.org/type/
   - `DEFAULT_FULL_SCHEMA` - all supported YAML types.
-- `json` _(default: false)_ - compatibility with JSON.parse behaviour. If true, then duplicate keys in a mapping will override values rather than throwing an error.
+- `json` _(default: false)_ - compatibility with `JSON.parse` behaviour. If true, then duplicate keys in a mapping will override values rather than throwing an error.
 - `metaKey` _(default: null)_ - if set, then saves start line and start position of each field under this key into the resulting object.
+- `legacy` _(default: false)_ - check for non-ASCII line breaks in the file and throw an exception when any exist in the YAML input
+- `listener` _(default: null)_ - function which is invoked for YAML parse events. (Currently the element `open` and `close` events are emitted for every YAML node)
 
-NOTE: This function **does not** understand multi-document sources, it throws
-exception on those.
+NOTE: the `safeLoad` function **does not** understand multi-document sources, it throws
+an exception on those.
 
 NOTE: JS-YAML **does not** support schema-specific tag resolution restrictions.
-So, the JSON schema is not as strictly defined in the YAML specification.
+So, the JSON schema is not as strictly defined as in the YAML specification.
 It allows numbers in any notation, use `Null` and `NULL` as `null`, etc.
 The core schema also has no such restrictions. It allows binary notation for integers.
 
@@ -133,7 +135,7 @@ The core schema also has no such restrictions. It allows binary notation for int
 
 **Use with care with untrusted sources**. The same as `safeLoad()` but uses
 `DEFAULT_FULL_SCHEMA` by default - adds some JavaScript-specific types:
-`!!js/function`, `!!js/regexp` and `!!js/undefined`. For untrusted sources, you
+`!!js/function`, `!!js/module`, `!!js/regexp` and `!!js/undefined`. For untrusted sources, you
 must additionally validate object structure to avoid injections:
 
 ``` javascript
@@ -144,21 +146,29 @@ require('js-yaml').load(untrusted_code) + ''
 ```
 
 
-### safeLoadAll (string [, iterator] [, options ])
+### safeLoadAll (string [, iterator [, options ]])
 
 Same as `safeLoad()`, but understands multi-document sources. Applies
-`iterator` to each document if specified, or returns array of documents.
+`iterator` to each document if specified. 
+
+Returns an array of documents, listing the documents in order of appearance in the input.
+
+The `iterator` callback interface includes these parameters:
+
+- `doc`: the parsed document object
+- `index`: the index number of the document, starting at *0*
+- `options_state`: a reference to the active js-yaml options in the js-yaml `state` object
 
 ``` javascript
 var yaml = require('js-yaml');
 
-yaml.safeLoadAll(data, function (doc) {
+yaml.safeLoadAll(data, function (doc, index, options_state) {
   console.log(doc);
 });
 ```
 
 
-### loadAll (string [, iterator] [ , options ])
+### loadAll (string [, iterator [ , options ]])
 
 Same as `safeLoadAll()` but uses `DEFAULT_FULL_SCHEMA` by default.
 
