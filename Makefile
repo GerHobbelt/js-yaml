@@ -24,6 +24,10 @@ lint:
 	./node_modules/.bin/eslint .
 
 
+fix:
+	./node_modules/.bin/eslint --fix .
+
+
 test: lint
 	@node -e "require('./bower.json')"
 	@node -e "require('./package.json')"
@@ -76,14 +80,14 @@ publish:
 		exit 128 ; \
 		fi
 	git tag ${NPM_VERSION} && git push origin ${NPM_VERSION}
-	npm publish ${GITHUB_PROJ}/tarball/${NPM_VERSION}
+	npm run pub
 
 
 browserify:
 	rm -rf ./dist
 	mkdir dist
 	# Browserify
-	( echo -n "/* ${NPM_PACKAGE} ${NPM_VERSION} ${GITHUB_PROJ} */" ; \
+	( echo "/* ${NPM_PACKAGE} ${NPM_VERSION} ${GITHUB_PROJ} */" ; \
 		./node_modules/.bin/browserify -r ./ -s jsyaml \
 		) > dist/js-yaml.js
 	# Minify
@@ -96,5 +100,5 @@ todo:
 	grep 'TODO' -n -r ./lib 2>/dev/null || test true
 
 
-.PHONY: publish lint test dev-deps gh-pages todo coverage demo
+.PHONY: publish lint fix test dev-deps gh-pages todo coverage demo
 .SILENT: help lint test todo coverage
