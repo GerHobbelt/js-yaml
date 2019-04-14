@@ -29,7 +29,7 @@ suite('Loader', function () {
       });
 
       if (actual.length === 1) actual = actual[0];
-      if (returned.length === 1) returned = returned[0];
+      if (returned && returned.length === 1) returned = returned[0];
 
       if (typeof expected === 'function') {
         expected.call(this, actual);
