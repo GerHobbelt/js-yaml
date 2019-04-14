@@ -21,12 +21,14 @@ suite('Loader', function () {
       var expected = require(path.resolve(samplesDir, jsFile));
       var actual   = [];
 
-      var returned = yaml.loadAll(fs.readFileSync(yamlFile, { encoding: 'utf8' }), function (doc /*, index, input, options */) {
-        actual.push(doc);
-      }, {
-        filename: yamlFile,
-        schema: TEST_SCHEMA
-      });
+      var returned = yaml.loadAll(fs.readFileSync(yamlFile, { encoding: 'utf8' }),
+        function (doc /*, index, state/options */) {
+          actual.push(doc);
+        }, {
+          filename: yamlFile,
+          schema: TEST_SCHEMA
+        }
+      );
 
       if (actual.length === 1) actual = actual[0];
       if (returned && returned.length === 1) returned = returned[0];
