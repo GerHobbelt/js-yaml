@@ -3,7 +3,7 @@
 var assert = require('assert');
 var yaml = require('../..');
 
-test('should not unnecessaryly apply quotes', function () {
+test('should not unnecessarily apply quotes', function () {
 
   var expected = 'url: https://github.com/nodeca/js-yaml\n';
   var actual = yaml.dump(
@@ -14,7 +14,8 @@ test('should not unnecessaryly apply quotes', function () {
 
   assert.strictEqual(actual, expected);
 });
-test('should not unnecessaryly apply quotes - ', function () {
+
+test('should not unnecessarily apply quotes - ', function () {
 
   var expected = 'url: https://github.com/nodeca/js-yaml\n';
 
@@ -26,7 +27,7 @@ test('should not unnecessaryly apply quotes - ', function () {
   assert.strictEqual(actual, expected);
 });
 
-test('should not unnecessaryly apply quotes - space then /\n at end of value', function () {
+test('should not unnecessarily apply quotes - space then /\n at end of value', function () {
 
   var expected = 'url: \'https://github.com/nodeca/js-yaml \'\n';
 
@@ -37,7 +38,8 @@ test('should not unnecessaryly apply quotes - space then /\n at end of value', f
 
   assert.strictEqual(actual, expected);
 });
-test('should not unnecessaryly apply quotes - space after colon', function () {
+
+test('should not unnecessarily apply quotes - space after colon', function () {
 
   var expected = 'url: \'https: //github.com/nodeca/js-yaml\'\n';
   var actual = yaml.dump({ url: 'https: //github.com/nodeca/js-yaml' });
