@@ -1158,7 +1158,7 @@ function addMetaInformation(state, _result, keyNode, startLine, startPos) {
   }
 }
 
-function State(input, options) {
+function State(input, iterator, options) {
   this.input = input;
 
   this.filename  = options['filename']  || null;
@@ -1169,6 +1169,8 @@ function State(input, options) {
   this.listener  = options['listener']  || null;
   this.metaKey   = options['metaKey']   || null;
 
+  this.documentListener = iterator || null;
+
   this.implicitTypes = this.schema.compiledImplicit;
   this.typeMap       = this.schema.compiledTypeMap;
 
@@ -1177,19 +1179,19 @@ function State(input, options) {
   this.line       = 0;
   this.lineStart  = 0;
   this.lineIndent = 0;
+  this.documentStart = 0;
 
   this.documents = [];
 
-  /*
-  this.version;
-  this.checkLineBreaks;
-  this.tagMap;
-  this.anchorMap;
-  this.tag;
-  this.anchor;
-  this.kind;
-  this.result;*/
-
+  // internals which are added during the parsing process:
+  this.version = null;
+  this.checkLineBreaks = false;
+  this.tagMap = null;
+  this.anchorMap = null;
+  this.tag = '';
+  this.anchor = '';
+  this.kind = '';
+  this.result = null;
 }
 
 
@@ -2489,13 +2491,17 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
 }
 
 function readDocument(state) {
-  var documentStart = state.position,
-      _position,
+  var _position,
+      iterator,
+      doc,
+      index,
+      length,
       directiveName,
       directiveArgs,
       hasDirectives = false,
       ch;
 
+  state.documentStart = state.position;
   state.version = null;
   state.checkLineBreaks = state.legacy;
   state.tagMap = {};
@@ -2531,8 +2537,9 @@ function readDocument(state) {
       }
 
       if (ch === 0x23/* # */) {
-        do { ch = state.input.charCodeAt(++state.position); }
-        while (ch !== 0 && !is_EOL(ch));
+        do {
+          ch = state.input.charCodeAt(++state.position);
+        } while (ch !== 0 && !is_EOL(ch));
         break;
       }
 
@@ -2573,11 +2580,17 @@ function readDocument(state) {
   skipSeparationSpace(state, true, -1);
 
   if (state.checkLineBreaks &&
-      PATTERN_NON_ASCII_LINE_BREAKS.test(state.input.slice(documentStart, state.position))) {
+      PATTERN_NON_ASCII_LINE_BREAKS.test(state.input.slice(state.documentStart, state.position))) {
     throwWarning(state, 'non-ASCII line breaks are interpreted as content');
   }
 
-  state.documents.push(state.result);
+  doc = state.result;
+  state.documents.push(doc);
+
+  iterator = state.documentListener;
+  if (iterator) {
+    iterator(doc, state.documents.length - 1, state);
+  }
 
   if (state.position === state.lineStart && testDocumentSeparator(state)) {
 
@@ -2596,7 +2609,7 @@ function readDocument(state) {
 }
 
 
-function loadDocuments(input, options) {
+function loadDocuments(input, iterator, options) {
   input = String(input);
   options = options || {};
 
@@ -2608,13 +2621,13 @@ function loadDocuments(input, options) {
       input += '\n';
     }
 
-    // Strip BOM
+    // Strip UTF BOM
     if (input.charCodeAt(0) === 0xFEFF) {
       input = input.slice(1);
     }
   }
 
-  var state = new State(input, options);
+  var state = new State(input, iterator, options);
 
   // Use 0 as string terminator. That significantly simplifies bounds check.
   state.input += '\0';
@@ -2633,20 +2646,12 @@ function loadDocuments(input, options) {
 
 
 function loadAll(input, iterator, options) {
-  var documents = loadDocuments(input, options), index, length;
-
-  if (typeof iterator !== 'function') {
-    return documents;
-  }
-
-  for (index = 0, length = documents.length; index < length; index += 1) {
-    iterator(documents[index], index, input, options);
-  }
+  return loadDocuments(input, iterator, options);
 }
 
 
 function load(input, options) {
-  var documents = loadDocuments(input, options);
+  var documents = loadDocuments(input, null, options);
 
   if (documents.length === 0) {
     /*eslint-disable no-undefined*/
