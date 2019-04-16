@@ -39,11 +39,21 @@ suite('Properties', function () {
       yamlArbitrary,
       dumpOptionsArbitrary,
       function (obj, dumpOptions) {
+        // console.warn('in:', JSON.stringify(obj));
         var yamlContent = yaml.safeDump(obj, dumpOptions);
         assert.strictEqual(typeof yamlContent, 'string');
-        assert.deepStrictEqual(yaml.safeLoad(yamlContent), obj, 'mismatch for input `' + yamlContent + '`');
+        // console.warn('str:', yamlContent);
+        var roundTrip = yaml.safeLoad(yamlContent);
+        // console.warn('out:', JSON.stringify(roundTrip));
+        assert.deepStrictEqual(roundTrip, obj, 'mismatch for input: ' + JSON.stringify(obj, null, 2));
       }),
-    { verbose: true });
+    {
+      verbose: true,
+      numRuns: 3000,
+      // seed: 1955227325,
+      // path: '68:2:2:2:1:3:2:2:4:3:3:3:3:3:3:4:4:3:3:3:3:4:5:3:10:10:9:8:8:8:8:8:8:8:9:9:9:9:9:9:9:9',
+      // endOnFailure: true
+    });
   });
 });
 
