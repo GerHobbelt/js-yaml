@@ -231,9 +231,9 @@ function State(options) {
   this.noCompatMode  = options['noCompatMode'] || false;
   this.condenseFlow  = options['condenseFlow'] || false;
   this.scalarQuoteStyle = options['scalarQuoteStyle'] || null;
-  this.forceSeqFlow = options['forceSeqFlow'] || false;
+  this.forceSeqFlow  = options['forceSeqFlow'] || false;
   // accept a `quoteKeys` option *explicitly* set to FALSE:
-  this.quoteKeys    = (options['quoteKeys'] != null ? options['quoteKeys'] : !!this.condenseFlow);
+  this.quoteKeys     = (options['quoteKeys'] != null ? options['quoteKeys'] : !!this.condenseFlow);
   if (this.quoteKeys) {
     if (this.quoteKeys === true) {
       this.quoteKeys = '"';
@@ -319,7 +319,15 @@ function isPlainSafe(c) {
   // where nb-char ::= c-printable - b-char - c-byte-order-mark.
   return isPrintable(c) && c !== 0xFEFF
     // - c-flow-indicator
-    && c !== CHAR_COLON;
+    && c !== CHAR_COMMA
+    && c !== CHAR_LEFT_SQUARE_BRACKET
+    && c !== CHAR_RIGHT_SQUARE_BRACKET
+    && c !== CHAR_LEFT_CURLY_BRACKET
+    && c !== CHAR_RIGHT_CURLY_BRACKET
+    // - ":" 
+    // - "#"
+    && c !== CHAR_COLON
+    && c !== CHAR_SHARP;
 }
 
 // Simplified test for values allowed as the first character in plain style.
@@ -383,7 +391,9 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
   var shouldTrackWidth = lineWidth !== -1;
   var previousLineBreak = -1; // count the first line correctly
   var plain = isPlainSafeFirst(string.charCodeAt(0))
-          && !isWhitespace(string.charCodeAt(string.length - 1));
+          && !isWhitespace(string.charCodeAt(string.length - 1))
+          && /\s#/.test(string) === false
+          && /:(?:\s|$)/.test(string) === false;
 
   if (singleLineOnly) {
     // Case: no block styles.
@@ -393,7 +403,7 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
       if (!isPrintable(char)) {
         return STYLE_DOUBLE;
       }
-      plain = plain && (isPlainSafe(char) && !isWhitespace(string.charCodeAt(i + 1)));
+      plain = plain && isPlainSafe(char);
     }
   } else {
     // Case: block styles permitted.
@@ -412,14 +422,12 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
       } else if (!isPrintable(char)) {
         return STYLE_DOUBLE;
       }
-      if (!isPlainSafe(char)) {
-        plain = plain && !isWhitespace(string.charCodeAt(i + 1));
-      }
+      plain = plain && isPlainSafe(char);
     }
     // in case the end is missing a \n
     hasFoldableLine = hasFoldableLine || (shouldTrackWidth &&
       (i - previousLineBreak - 1 > lineWidth &&
-      string[previousLineBreak + 1] !== ' '));
+       string[previousLineBreak + 1] !== ' '));
   }
   // Although every style can represent \n without escaping, prefer block styles
   // for multiline, since they're more readable and they don't add empty lines.
@@ -455,6 +463,9 @@ function writeScalar(state, string, level, iskey) {
     }
     if (!state.noCompatMode &&
         DEPRECATED_BOOLEANS_SYNTAX.indexOf(string) !== -1) {
+      if (state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_DOUBLE) {
+        return '"' + string + '"';
+      }
       return "'" + string + "'";
     }
 
@@ -479,7 +490,7 @@ function writeScalar(state, string, level, iskey) {
 
     var scalarStyle = chooseScalarStyle(string, singleLineOnly, state.indent, lineWidth, testAmbiguity);
 
-    if (iskey !== true && (scalarStyle === STYLE_PLAIN || scalarStyle === STYLE_SINGLE)) {
+    if (!iskey && (scalarStyle === STYLE_DOUBLE || scalarStyle === STYLE_SINGLE)) {
       if (state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_SINGLE) {
         scalarStyle = STYLE_SINGLE;
       } else if (state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_DOUBLE) {
@@ -636,7 +647,8 @@ function writeFlowSequence(state, level, object) {
 
   for (index = 0, length = object.length; index < length; index += 1) {
     // Write only valid elements.
-    if (writeNode(state, level, object[index], false, false)) {
+    //           (state, level, object, block, compact, iskey)
+    if (writeNode(state, level, object[index], false, false, false)) {
       if (index !== 0) _result += ',' + (!state.condenseFlow ? ' ' : '');
       _result += state.dump;
     }
@@ -654,7 +666,8 @@ function writeBlockSequence(state, level, object, compact) {
 
   for (index = 0, length = object.length; index < length; index += 1) {
     // Write only valid elements.
-    if (writeNode(state, level + 1, object[index], true, true)) {
+    //           (state, level, object, block, compact, iskey)
+    if (writeNode(state, level + 1, object[index], true, true, false)) {
       if (!compact || index !== 0) {
         _result += generateNextLine(state, level);
       }
@@ -691,7 +704,8 @@ function writeFlowMapping(state, level, object) {
     objectKey = objectKeyList[index];
     objectValue = object[objectKey];
 
-    if (!writeNode(state, level, objectKey, false, false)) {
+    //           (state, level, object, block, compact, iskey)
+    if (!writeNode(state, level, objectKey, false, false, false)) {
       continue; // Skip this pair because of invalid key;
     }
 
@@ -704,7 +718,8 @@ function writeFlowMapping(state, level, object) {
       pairBuffer += ' ';
     }
 
-    if (!writeNode(state, level, objectValue, false, false)) {
+    //           (state, level, object, block, compact, iskey)
+    if (!writeNode(state, level, objectValue, false, false, false)) {
       continue; // Skip this pair because of invalid value.
     }
 
@@ -751,6 +766,7 @@ function writeBlockMapping(state, level, object, compact) {
     objectKey = objectKeyList[index];
     objectValue = object[objectKey];
 
+    //           (state, level, object, block, compact, iskey)
     if (!writeNode(state, level + 1, objectKey, true, true, true)) {
       continue; // Skip this pair because of invalid key.
     }
@@ -772,7 +788,8 @@ function writeBlockMapping(state, level, object, compact) {
       pairBuffer += generateNextLine(state, level);
     }
 
-    if (!writeNode(state, level + 1, objectValue, true, explicitPair)) {
+    //           (state, level, object, block, compact, iskey)
+    if (!writeNode(state, level + 1, objectValue, true, explicitPair, false)) {
       continue; // Skip this pair because of invalid value.
     }
 
@@ -799,16 +816,15 @@ function detectType(state, object, explicit) {
 
   for (index = 0, length = typeList.length; index < length; index += 1) {
     type = typeList[index];
+    style = state.styleMap[type.tag] || type.defaultStyle;
 
     if ((type.instanceOf  || type.predicate) &&
         (!type.instanceOf || ((typeof object === 'object') && (object instanceof type.instanceOf))) &&
-        (!type.predicate  || type.predicate(object))) {
+        (!type.predicate  || type.predicate(object, style))) {
 
       state.tag = explicit ? type.tag : '?';
 
       if (type.represent) {
-        style = state.styleMap[type.tag] || type.defaultStyle;
-
         if (_toString.call(type.represent) === '[object Function]') {
           _result = type.represent(object, style);
         } else if (_hasOwnProperty.call(type.represent, style)) {
@@ -957,7 +973,8 @@ function dump(input, options) {
 
   if (!state.noRefs) getDuplicateReferences(input, state);
 
-  if (writeNode(state, 0, input, true, true)) return state.dump + '\n';
+  //           (state, level, object, block, compact, iskey)
+  if (writeNode(state, 0, input, true, true, false)) return state.dump + '\n';
 
   return '';
 }
@@ -1017,7 +1034,7 @@ module.exports = YAMLException;
 },{}],5:[function(require,module,exports){
 'use strict';
 
-/*eslint-disable max-len,no-use-before-define,no-unused-vars*/
+/*eslint-disable max-len,no-use-before-define*/
 
 var common              = require('./common');
 var YAMLException       = require('./exception');
@@ -1166,11 +1183,16 @@ function State(input, iterator, options) {
   this.filename  = options['filename']  || null;
   this.schema    = options['schema']    || DEFAULT_FULL_SCHEMA;
   this.onWarning = options['onWarning'] || null;
+  this.onError   = options['onError']   || null;
   this.legacy    = options['legacy']    || false;
   this.json      = options['json']      || false;
   this.listener  = options['listener']  || null;
   this.metaKey   = options['metaKey']   || null;
-  this.add_line_number  = options.hasOwnProperty('add_line_number') ? options['add_line_number'] : true;
+  this.add_line_number = (
+    options.hasOwnProperty('add_line_number') ?
+    options['add_line_number'] :
+    false
+  );
 
   this.documentListener = iterator || null;
 
@@ -1205,7 +1227,12 @@ function generateError(state, message) {
 }
 
 function throwError(state, message) {
-  throw generateError(state, message);
+  var ex = generateError(state, message);
+  if (state.onError) {
+    state.onError.call(null, ex);
+  } else {
+    throw ex;
+  }
 }
 
 function throwWarning(state, message) {
@@ -1373,9 +1400,9 @@ function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valu
     _result[keyNode] = valueNode;
     if (state.add_line_number) {
       if (typeof _result[keyNode] === "object" && _result[keyNode] !== null) {
-        _result[keyNode][LINE_NUMBER_TAG] = startLine || state.line;
+        _result[keyNode][LINE_NUMBER_TAG] = (startLine || state.line);
       } else {
-        _result[keyNode + LINE_NUMBER_TAG] = startLine || state.line;
+        _result[keyNode + LINE_NUMBER_TAG] = (startLine || state.line);
       }
     }
     delete overridableKeys[keyNode];
@@ -1975,7 +2002,7 @@ function readBlockScalar(state, nodeIndent) {
 
 function readBlockSequence(state, nodeIndent) {
   var _line,
-      _pos,
+      //_pos,
       _tag      = state.tag,
       _anchor   = state.anchor,
       _result   = [],
@@ -2013,7 +2040,7 @@ function readBlockSequence(state, nodeIndent) {
     }
 
     _line = state.line;
-    _pos = state.position;
+    //_pos = state.position;
     composeNode(state, nodeIndent, CONTEXT_BLOCK_IN, false, true);
     //addMetaInformation(state, _result, keyNode, _line, _pos);
     _result.push(state.result);
@@ -2504,8 +2531,6 @@ function readDocument(state) {
   var _position,
       iterator,
       doc,
-      index,
-      length,
       directiveName,
       directiveArgs,
       hasDirectives = false,
@@ -2598,12 +2623,18 @@ function readDocument(state) {
   state.documents.push(doc);
 
   iterator = state.documentListener;
+  var expectAnotherYamlChunk = false;
   if (iterator) {
-    iterator(doc, state.documents.length - 1, state);
+    if (typeof iterator !== 'function') {
+      throwError(state, 'document listener (iterator) must be a FUNCTION or NULL, not a ' + typeof iterator);
+    }
+    expectAnotherYamlChunk = !!iterator(doc, state.documents.length - 1, state);
+    if (expectAnotherYamlChunk) {
+      skipSeparationSpace(state, true, -1);
+    }
   }
 
   if (state.position === state.lineStart && testDocumentSeparator(state)) {
-
     if (state.input.charCodeAt(state.position) === 0x2E/* . */) {
       state.position += 3;
       skipSeparationSpace(state, true, -1);
@@ -2611,7 +2642,7 @@ function readDocument(state) {
     return;
   }
 
-  if (state.position < (state.length - 1)) {
+  if (!expectAnotherYamlChunk && state.position < state.length - 1) {
     throwError(state, 'end of the stream or a document separator is expected');
   } else {
     return;
@@ -2673,11 +2704,8 @@ function load(input, options) {
 }
 
 
-function safeLoadAll(input, output, options) {
-  if (typeof output !== 'function') {
-    output = null;
-  }
-  return loadAll(input, output, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options));
+function safeLoadAll(input, iterator, options) {
+  return loadAll(input, iterator, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options));
 }
 
 
@@ -3587,7 +3615,8 @@ function constructJavascriptFunction(data) {
   var source = '(' + data + ')',
       ast    = esprima.parse(source, { range: true }),
       params = [],
-      body;
+      body,
+      code;
 
   if (ast.type                    !== 'Program'             ||
       ast.body.length             !== 1                     ||
@@ -3603,16 +3632,25 @@ function constructJavascriptFunction(data) {
 
   body = ast.body[0].expression.body.range;
 
-  // Esprima's ranges include the first '{' and the last '}' characters on
-  // function expressions. So cut them out.
   if (ast.body[0].expression.body.type === 'BlockStatement') {
-    /*eslint-disable no-new-func*/
-    return new Function(params, source.slice(body[0] + 1, body[1] - 1));
+    // Esprima's ranges include the first '{' and the last '}' characters on
+    // function expressions. So cut them out.
+    code = source.slice(body[0] + 1, body[1] - 1);
+  } else {
+    // ES6 arrow functions can omit the BlockStatement. In that case, just return
+    // the body.
+    code = 'return ' + source.slice(body[0], body[1]);
   }
-  // ES6 arrow functions can omit the BlockStatement. In that case, just return
-  // the body.
+
   /*eslint-disable no-new-func*/
-  return new Function(params, 'return ' + source.slice(body[0], body[1]));
+  if (ast.body[0].expression.async) {
+    // we might be on earlier version of JS than ES2017, so we need the code
+    // that retrieves the AsyncFunction constructor to be parsed at runtime
+    /*eslint-disable no-eval*/
+    var AsyncFunction = eval('Object.getPrototypeOf(async function(){}).constructor');
+    return new AsyncFunction(params, code);
+  }
+  return new Function(params, code);
 }
 
 function representJavascriptFunction(object /*, style*/) {
@@ -3620,7 +3658,8 @@ function representJavascriptFunction(object /*, style*/) {
 }
 
 function isFunction(object) {
-  return Object.prototype.toString.call(object) === '[object Function]';
+  return Object.prototype.toString.call(object) === '[object Function]' ||
+    Object.prototype.toString.call(object) === '[object AsyncFunction]';
 }
 
 module.exports = new Type('tag:yaml.org,2002:js/function', {
