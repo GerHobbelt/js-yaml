@@ -28,7 +28,7 @@ fix:
 	./node_modules/.bin/eslint --fix .
 
 
-test: lint
+test:
 	@node -e "require('./bower.json')"
 	@node -e "require('./package.json')"
 	./node_modules/.bin/mocha -R spec

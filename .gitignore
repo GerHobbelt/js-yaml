@@ -5,3 +5,8 @@ doc
 benchmark/implementations/*
 !/benchmark/implementations/current/
 .idea
+
+# YAML spec PDF, etc.
+doc-reference
+# scratch directory for work on test suite(s)
+scratch
