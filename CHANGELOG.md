@@ -200,7 +200,7 @@
 ------------------
 
 - Fixed multiline keys dump, #197. Thanks to @tcr.
-- Don't throw on warnongs anymore. Use `onWarning` option to catch.
+- Don't throw on warnings anymore. Use `onWarning` option to catch.
 - Throw error on unknown tags (was warning before).
 - Fixed heading line breaks in some scalars (regression).
 - Reworked internals of error class.
