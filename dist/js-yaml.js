@@ -1186,6 +1186,7 @@ function State(input, iterator, options) {
   this.json      = options['json']      || false;
   this.listener  = options['listener']  || null;
   this.metaKey   = options['metaKey']   || null;
+  this.lenient   = options['lenient']   || false;
 
   this.documentListener = iterator || null;
 
@@ -1305,7 +1306,7 @@ function captureSegment(state, start, end, checkJson) {
     _result = state.input.slice(start, end);
 
     if (checkJson) {
-      for (_position = 0, _length = _result.length; _position < _length; _position += 1) {
+      for (_position = 0, _length = _result.length; _position < _length; _position++) {
         _character = _result.charCodeAt(_position);
         if (!(_character === 0x09 ||
               (0x20 <= _character && _character <= 0x10FFFF))) {
@@ -1329,7 +1330,7 @@ function mergeMappings(state, destination, source, overridableKeys) {
 
   sourceKeys = Object.keys(source);
 
-  for (index = 0, quantity = sourceKeys.length; index < quantity; index += 1) {
+  for (index = 0, quantity = sourceKeys.length; index < quantity; index++) {
     key = sourceKeys[index];
 
     if (!_hasOwnProperty.call(destination, key)) {
@@ -1348,7 +1349,7 @@ function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valu
   if (Array.isArray(keyNode)) {
     keyNode = Array.prototype.slice.call(keyNode);
 
-    for (index = 0, quantity = keyNode.length; index < quantity; index += 1) {
+    for (index = 0, quantity = keyNode.length; index < quantity; index++) {
       if (Array.isArray(keyNode[index])) {
         throwError(state, 'nested arrays are not supported inside keys');
       }
@@ -1376,7 +1377,7 @@ function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valu
 
   if (keyTag === 'tag:yaml.org,2002:merge') {
     if (Array.isArray(valueNode)) {
-      for (index = 0, quantity = valueNode.length; index < quantity; index += 1) {
+      for (index = 0, quantity = valueNode.length; index < quantity; index++) {
         mergeMappings(state, _result, valueNode[index], overridableKeys);
       }
     } else {
@@ -1413,7 +1414,7 @@ function readLineBreak(state) {
     throwError(state, 'a line break is expected');
   }
 
-  state.line += 1;
+  state.line++;
   state.lineStart = state.position;
 }
 
@@ -1444,8 +1445,16 @@ function skipSeparationSpace(state, allowComments, checkIndent) {
         ch = state.input.charCodeAt(++state.position);
       }
 
-      if (ch === 0x09 /* Tab */) {
-        throwError(state, 'A YAML file cannot contain tabs as indentation');
+      if (ch === 0x09/* Tab */) {
+        if (!state.lenient) { 
+          throwError(state, 'A YAML file cannot contain tabs as indentation');
+        } else {
+          // treat TAB as SPACE:
+          while (is_WHITE_SPACE(ch)) {
+            state.lineIndent++;
+            ch = state.input.charCodeAt(++state.position);
+          }
+        }
       }
     } else {
       break;
@@ -1622,6 +1631,8 @@ function readSingleQuotedScalar(state, nodeIndent) {
       captureSegment(state, captureStart, state.position, true);
       ch = state.input.charCodeAt(++state.position);
 
+      // decode a doubled single quote in a quoted scalar as a single quote:
+      // '1''2' --> 1'2
       if (ch === 0x27/* ' */) {
         captureStart = state.position;
         state.position++;
@@ -1629,7 +1640,7 @@ function readSingleQuotedScalar(state, nodeIndent) {
       } else {
         return true;
       }
-
+    
     } else if (is_EOL(ch)) {
       captureSegment(state, captureStart, captureEnd, true);
       writeFoldedLines(state, skipSeparationSpace(state, false, nodeIndent));
@@ -1911,8 +1922,17 @@ function readBlockScalar(state, nodeIndent) {
       ch = state.input.charCodeAt(++state.position);
     }
 
-    if (ch === 0x09 /* Tab */) {
-      throwError(state, 'tabs indentation in block scalars is not allowed');
+    if (ch === 0x09/* Tab */) {
+      if (!state.lenient) {
+        throwError(state, 'tabs indentation in block scalars is not allowed');
+      } else {
+        // treat TAB as SPACE:
+        while ((!detectedIndent || state.lineIndent < textIndent) &&
+               is_WHITE_SPACE(ch)) {
+          state.lineIndent++;
+          ch = state.input.charCodeAt(++state.position);
+        }
+      }
     }
 
     if (!detectedIndent && state.lineIndent > textIndent) {
@@ -2105,7 +2125,7 @@ function readBlockMapping(state, nodeIndent, flowIndent) {
         throwError(state, 'incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line');
       }
 
-      state.position += 1;
+      state.position++;
       ch = following;
 
     //
@@ -2471,7 +2491,7 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
 
   if (state.tag !== null && state.tag !== '!') {
     if (state.tag === '?') {
-      for (typeIndex = 0, typeQuantity = state.implicitTypes.length; typeIndex < typeQuantity; typeIndex += 1) {
+      for (typeIndex = 0, typeQuantity = state.implicitTypes.length; typeIndex < typeQuantity; typeIndex++) {
         type = state.implicitTypes[typeIndex];
 
         // Implicit resolving is not allowed for non-scalar types, and '?'
@@ -2503,7 +2523,11 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
         }
       }
     } else {
-      throwError(state, 'unknown tag !<' + state.tag + '>');
+      throwError(state, 'unknown tag !<' + state.tag + '>' + JSON.stringify({
+        kind: state.kind,
+        map: state.typeMap,
+        tag: state.tag,
+      }, null, 2));
     }
   }
 
@@ -2659,9 +2683,22 @@ function loadDocuments(input, iterator, options) {
   // Use 0 as string terminator. That significantly simplifies bounds check.
   state.input += '\0';
 
-  while (state.input.charCodeAt(state.position) === 0x20/* Space */) {
-    state.lineIndent += 1;
-    state.position += 1;
+  var ch = state.input.charCodeAt(state.position);
+  while (ch === 0x20/* Space */) {
+    state.lineIndent++;
+    ch = state.input.charCodeAt(++state.position);
+  }
+
+  if (ch === 0x09/* Tab */) {
+    if (!state.lenient) {
+      throwError(state, 'tabs indentation in documents is not allowed');
+    } else {
+      // treat TAB as SPACE:
+      while (is_WHITE_SPACE(ch)) {
+        state.lineIndent++;
+        ch = state.input.charCodeAt(++state.position);
+      }
+    }
   }
 
   while (state.position < (state.length - 1)) {
@@ -2856,7 +2893,7 @@ Schema.DEFAULT = null;
 
 
 Schema.create = function createSchema() {
-  var schemas, types;
+  var schemas, types, implicitTypes;
 
   switch (arguments.length) {
     case 1:
@@ -2869,12 +2906,19 @@ Schema.create = function createSchema() {
       types = arguments[1];
       break;
 
+    case 3:
+      schemas = arguments[0];
+      implicitTypes = arguments[1];
+      types = arguments[2];
+      break;
+
     default:
       throw new YAMLException('Wrong number of arguments for Schema.create function');
   }
 
   schemas = common.toArray(schemas);
   types = common.toArray(types);
+  implicitTypes = common.toArray(implicitTypes);
 
   if (!schemas.every(function (schema) { return schema instanceof Schema; })) {
     throw new YAMLException('Specified list of super schemas (or a single Schema object) contains a non-Schema object.');
@@ -2884,9 +2928,14 @@ Schema.create = function createSchema() {
     throw new YAMLException('Specified list of YAML types (or a single Type object) contains a non-Type object.');
   }
 
+  if (!implicitTypes.every(function (type) { return type instanceof Type; })) {
+    throw new YAMLException('Specified list of implicit YAML types (or a single Type object) contains a non-Type object.');
+  }
+
   return new Schema({
     include: schemas,
-    explicit: types
+    implicit: implicitTypes,
+    explicit: types,
   });
 };
 
