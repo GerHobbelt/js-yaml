@@ -108,6 +108,88 @@ suite('YAML 1.2 Test Suite', function () {
         throw new Error("yaml-test-suite TML spec file " + specFile + " did not produce an INPUT YAML section. Please check and fix the test (or test rig).");
     }
 
+    // detect override files for input, output, error, etc.
+    // 
+    // Development Helper: 
+    // 
+    // set the 'updateSollwertFiles' constant to 1 to rewrite 
+    // or 2 to write-but-do-not-overwrite the overrides! 
+    // Set to 0 (zero) to disable all overrides; 
+    // -1 to load any overrides present in the test spec directory.
+    // 
+    var updateSollwertFiles = -1;
+    var hasOverrides = false;
+    var overrideFile;
+    var overrideData;
+    for (var i = 1; ; i++) {
+        switch (i) {
+        case 1:
+            overrideFile = 'inYaml';
+            overrideData = inYaml;
+            break;
+
+        case 2:
+            overrideFile = 'inJSON';
+            overrideData = inJson;
+            break;
+            
+        case 3:
+            overrideFile = 'inError';
+            overrideData = inError;
+            break;
+            
+        case 4:
+            overrideFile = 'outYaml';
+            overrideData = outYaml;
+            break;
+            
+        case 5:
+            overrideFile = 'emitYaml';
+            overrideData = emitYaml;
+            break;
+            
+        default:
+            overrideFile = null;
+            overrideData = null;
+            break;
+        }
+        if (!overrideFile) break;
+
+        var overrideFilePath = path.resolve(samplesDir, path.basename(specFile, ".tml") + '.' + overrideFile + '.data');
+        if (updateSollwertFiles > 0 && (updateSollwertFiles === 1 || !fs.existsSync(overrideFilePath)) && overrideData != null) {
+            fs.writeFileSync(overrideFilePath, overrideData, { encoding: 'utf8' });
+        }
+        else if (updateSollwertFiles < 0 && fs.existsSync(overrideFilePath)) {
+            hasOverrides = true;
+            overrideData = fs.readFileSync(overrideFilePath, { encoding: 'utf8' });
+
+            switch (i) {
+            case 1:
+                inYaml = overrideData;
+                break;
+
+            case 2:
+                inJson = overrideData;
+                break;
+                
+            case 3:
+                inError = overrideData;
+                break;
+                
+            case 4:
+                outYaml = overrideData;
+                break;
+                
+            case 5:
+                emitYaml = overrideData;
+                break;
+                
+            default:
+                throw new Error("internal error; should never get here");
+            }
+        }
+    }
+
     var expectedJson = null;
 
     if (inJson) {
@@ -130,7 +212,7 @@ suite('YAML 1.2 Test Suite', function () {
     // return;
 
 
-    test(title + " (from " + from + ") [" + path.basename(specFile, ".tml") + "]", function () {
+    test(title + " (from " + from + ") [" + path.basename(specFile, ".tml") + "]" + (hasOverrides ? " [OVERRIDE]" : ""), function () {
       var actual = [];
       var expected = expectedJson;
       var expectedError = inError;
