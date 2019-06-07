@@ -34,6 +34,7 @@ module.exports.load                = loader.load;
 module.exports.loadAll             = loader.loadAll;
 module.exports.safeLoad            = loader.safeLoad;
 module.exports.safeLoadAll         = loader.safeLoadAll;
+module.exports.LINE_NUMBER_TAG     = loader.LINE_NUMBER_TAG;
 module.exports.dump                = dumper.dump;
 module.exports.safeDump            = dumper.safeDump;
 module.exports.YAMLException       = require('./js-yaml/exception');
@@ -1045,6 +1046,7 @@ var PATTERN_FLOW_INDICATORS       = /[,\[\]\{\}]/;
 var PATTERN_TAG_HANDLE            = /^(?:!|!!|![a-z\-]+!)$/i;
 var PATTERN_TAG_URI               = /^(?:!|[^,\[\]\{\}])(?:%[0-9a-f]{2}|[0-9a-z\-#;\/\?:@&=\+\$,_\.!~\*'\(\)\[\]])*$/i;
 
+var LINE_NUMBER_TAG = '__meta_line_nr';
 
 function _class(obj) { return Object.prototype.toString.call(obj); }
 
@@ -1168,6 +1170,7 @@ function State(input, iterator, options) {
   this.json      = options['json']      || false;
   this.listener  = options['listener']  || null;
   this.metaKey   = options['metaKey']   || null;
+  this.add_line_number  = options.hasOwnProperty('add_line_number') ? options['add_line_number'] : true;
 
   this.documentListener = iterator || null;
 
@@ -1368,6 +1371,13 @@ function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valu
       throwError(state, 'duplicated mapping key');
     }
     _result[keyNode] = valueNode;
+    if (state.add_line_number) {
+      if (typeof _result[keyNode] === "object" && _result[keyNode] !== null) {
+        _result[keyNode][LINE_NUMBER_TAG] = startLine || state.line;
+      } else {
+        _result[keyNode + LINE_NUMBER_TAG] = startLine || state.line;
+      }
+    }
     delete overridableKeys[keyNode];
   }
 
@@ -2676,10 +2686,11 @@ function safeLoad(input, options) {
 }
 
 
-module.exports.loadAll     = loadAll;
-module.exports.load        = load;
-module.exports.safeLoadAll = safeLoadAll;
-module.exports.safeLoad    = safeLoad;
+module.exports.loadAll         = loadAll;
+module.exports.load            = load;
+module.exports.safeLoadAll     = safeLoadAll;
+module.exports.safeLoad        = safeLoad;
+module.exports.LINE_NUMBER_TAG = LINE_NUMBER_TAG;
 
 },{"./common":2,"./exception":4,"./mark":6,"./schema/default_full":9,"./schema/default_safe":10}],6:[function(require,module,exports){
 'use strict';
