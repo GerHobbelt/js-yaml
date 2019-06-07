@@ -1,0 +1,9 @@
+{
+  "expectedError": false,
+  "expectedJSON": [
+    null,
+    "a",
+    "b",
+    "c"
+  ]
+}

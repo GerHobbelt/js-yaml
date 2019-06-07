@@ -1,0 +1,15 @@
+{
+  "expectedError": "line: value}\n          ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "missed comma between flow collection entries",
+    "mark": {
+      "name": "NJ66.tml",
+      "buffer": "---\n- { single line: value}\n- { multi\n  line: value}\n\u0000",
+      "position": 44,
+      "line": 3,
+      "column": 6
+    },
+    "message": "missed comma between flow collection entries in \"NJ66.tml\" at line 4, column 7:\n      line: value}\n          ^"
+  }
+}

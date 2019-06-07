@@ -1,0 +1,15 @@
+{
+  "expectedError": ": *a\n    ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line",
+    "mark": {
+      "name": "6M2F.tml",
+      "buffer": "? &a a\n: &b b\n: *a\n\u0000",
+      "position": 14,
+      "line": 2,
+      "column": 0
+    },
+    "message": "incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line in \"6M2F.tml\" at line 3, column 1:\n    : *a\n    ^"
+  }
+}

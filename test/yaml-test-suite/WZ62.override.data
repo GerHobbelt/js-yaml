@@ -1,0 +1,15 @@
+{
+  "expectedError": "foo : !!str,\n                  ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "tag suffix cannot contain flow indicator characters",
+    "mark": {
+      "name": "WZ62.tml",
+      "buffer": "{\n  foo : !!str,\n  !!str : bar,\n}\n\u0000",
+      "position": 16,
+      "line": 1,
+      "column": 14
+    },
+    "message": "tag suffix cannot contain flow indicator characters in \"WZ62.tml\" at line 2, column 15:\n      foo : !!str,\n                  ^"
+  }
+}

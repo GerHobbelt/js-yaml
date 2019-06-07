@@ -1,0 +1,14 @@
+{
+  "expectedJSON": [
+    {
+      "time": 72200,
+      "player": "Sammy Sosa",
+      "action": "strike (miss)"
+    },
+    {
+      "time": 72227,
+      "player": "Sammy Sosa",
+      "action": "grand slam"
+    }
+  ]
+}

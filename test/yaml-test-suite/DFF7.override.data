@@ -1,0 +1,7 @@
+{
+  "expectedJSON": {
+    "explicit": "entry",
+    "implicit": "entry",
+    "null": null
+  }
+}

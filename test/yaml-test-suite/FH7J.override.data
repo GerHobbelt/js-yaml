@@ -1,0 +1,15 @@
+{
+  "expectedError": "!!null : a\n             ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "bad indentation of a sequence entry",
+    "mark": {
+      "name": "FH7J.tml",
+      "buffer": "- !!str\n-\n  !!null : a\n  b: !!str\n- !!str : !!null\n\u0000",
+      "position": 19,
+      "line": 2,
+      "column": 9
+    },
+    "message": "bad indentation of a sequence entry in \"FH7J.tml\" at line 3, column 10:\n      !!null : a\n             ^"
+  }
+}

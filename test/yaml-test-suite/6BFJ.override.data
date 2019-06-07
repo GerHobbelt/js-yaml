@@ -1,0 +1,15 @@
+{
+  "expectedError": "&key [ &item a, b, c ]: value\n    ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "duplication of an anchor property",
+    "mark": {
+      "name": "6BFJ.tml",
+      "buffer": "---\n&mapping\n&key [ &item a, b, c ]: value\n\u0000",
+      "position": 13,
+      "line": 2,
+      "column": 0
+    },
+    "message": "duplication of an anchor property in \"6BFJ.tml\" at line 3, column 1:\n    &key [ &item a, b, c ]: value\n    ^"
+  }
+}

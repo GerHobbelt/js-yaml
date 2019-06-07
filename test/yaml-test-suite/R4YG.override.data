@@ -1,0 +1,15 @@
+{
+  "expectedError": "detected\n     ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "bad indentation of a sequence entry",
+    "mark": {
+      "name": "R4YG.tml",
+      "buffer": "- |\n detected\n- >\n \n  \n  # detected\n- |1\n  explicit\n- >\n \t\n detected\n\u0000",
+      "position": 60,
+      "line": 10,
+      "column": 1
+    },
+    "message": "bad indentation of a sequence entry in \"R4YG.tml\" at line 11, column 2:\n     detected\n     ^"
+  }
+}

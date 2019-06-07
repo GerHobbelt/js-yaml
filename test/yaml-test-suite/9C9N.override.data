@@ -1,0 +1,10 @@
+{
+  "expectedError": false,
+  "expectedJSON": {
+    "flow": [
+      "a",
+      "b",
+      "c"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "expectedError": ": # Both empty\n    ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line",
+    "mark": {
+      "name": "S3PD.tml",
+      "buffer": "plain key: in-line value\n: # Both empty\n\"quoted key\":\n- entry\n\u0000",
+      "position": 25,
+      "line": 1,
+      "column": 0
+    },
+    "message": "incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line in \"S3PD.tml\" at line 2, column 1:\n    : # Both empty\n    ^"
+  }
+}

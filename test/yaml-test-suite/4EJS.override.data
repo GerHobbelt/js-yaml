@@ -1,0 +1,10 @@
+{
+  "expectedError": false,
+  "expectedJSON": {
+    "a": {
+      "b": {
+        "c": "value"
+      }
+    }
+  }
+}

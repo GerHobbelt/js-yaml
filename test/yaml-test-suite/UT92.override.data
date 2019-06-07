@@ -1,0 +1,15 @@
+{
+  "expectedError": "% : 20 }\n      ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "missed comma between flow collection entries",
+    "mark": {
+      "name": "UT92.tml",
+      "buffer": "---\n{ matches\n% : 20 }\n...\n---\n# Empty\n...\n\u0000",
+      "position": 16,
+      "line": 2,
+      "column": 2
+    },
+    "message": "missed comma between flow collection entries in \"UT92.tml\" at line 3, column 3:\n    % : 20 }\n      ^"
+  }
+}

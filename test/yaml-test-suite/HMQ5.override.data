@@ -1,0 +1,15 @@
+{
+  "expectedError": "!!str &a1 \"foo\":\n                   ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "end of the stream or a document separator is expected",
+    "mark": {
+      "name": "HMQ5.tml",
+      "buffer": "!!str &a1 \"foo\":\n  !!str bar\n&a2 baz : *a1\n\u0000",
+      "position": 15,
+      "line": 0,
+      "column": 15
+    },
+    "message": "end of the stream or a document separator is expected in \"HMQ5.tml\" at line 1, column 16:\n    !!str &a1 \"foo\":\n                   ^"
+  }
+}

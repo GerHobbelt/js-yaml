@@ -1,0 +1,15 @@
+{
+  "expectedError": "{ &a [a, &b b]: *b, *a : [c, *b, d]}\n                       ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "duplicated mapping key",
+    "mark": {
+      "name": "X38W.tml",
+      "buffer": "{ &a [a, &b b]: *b, *a : [c, *b, d]}\n\u0000",
+      "position": 19,
+      "line": 0,
+      "column": 19
+    },
+    "message": "duplicated mapping key in \"X38W.tml\" at line 1, column 20:\n    { &a [a, &b b]: *b, *a : [c, *b, d]}\n                       ^"
+  }
+}

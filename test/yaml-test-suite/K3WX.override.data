@@ -1,0 +1,15 @@
+{
+  "expectedError": ":bar }\n      ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "missed comma between flow collection entries",
+    "mark": {
+      "name": "K3WX.tml",
+      "buffer": "---\n{ \"foo\" # comment\n  :bar }\n\u0000",
+      "position": 24,
+      "line": 2,
+      "column": 2
+    },
+    "message": "missed comma between flow collection entries in \"K3WX.tml\" at line 3, column 3:\n      :bar }\n      ^"
+  }
+}

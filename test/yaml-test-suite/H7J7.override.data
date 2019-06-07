@@ -1,0 +1,8 @@
+{
+  "expectedError": false,
+  "expectedJSON": {
+    "key": {
+      "a": "b"
+    }
+  }
+}

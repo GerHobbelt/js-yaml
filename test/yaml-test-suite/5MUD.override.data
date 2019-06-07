@@ -1,0 +1,15 @@
+{
+  "expectedError": ":bar }\n      ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "missed comma between flow collection entries",
+    "mark": {
+      "name": "5MUD.tml",
+      "buffer": "---\n{ \"foo\"\n  :bar }\n\u0000",
+      "position": 14,
+      "line": 2,
+      "column": 2
+    },
+    "message": "missed comma between flow collection entries in \"5MUD.tml\" at line 3, column 3:\n      :bar }\n      ^"
+  }
+}

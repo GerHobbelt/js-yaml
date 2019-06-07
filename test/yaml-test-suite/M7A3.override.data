@@ -1,0 +1,7 @@
+{
+  "expectedJSON": [
+    "Bare document",
+    null,
+    "# XXX literal needs indentation? libyaml sees a directive.\n%!PS-Adobe-2.0 # Not the first line\n"
+  ]
+}

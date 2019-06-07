@@ -1,0 +1,15 @@
+{
+  "expectedError": "!!str a: b\n           ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "end of the stream or a document separator is expected",
+    "mark": {
+      "name": "74H7.tml",
+      "buffer": "!!str a: b\nc: !!int 42\ne: !!str f\ng: h\n!!int 23: !!bool false\n\u0000",
+      "position": 7,
+      "line": 0,
+      "column": 7
+    },
+    "message": "end of the stream or a document separator is expected in \"74H7.tml\" at line 1, column 8:\n    !!str a: b\n           ^"
+  }
+}

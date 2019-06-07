@@ -1,0 +1,15 @@
+{
+  "expectedError": "&a : a\n         ^",
+  "expectedErrorException": {
+    "name": "YAMLException",
+    "reason": "bad indentation of a sequence entry",
+    "mark": {
+      "name": "PW8X.tml",
+      "buffer": "- &a\n- a\n-\n  &a : a\n  b: &b\n-\n  &c : &a\n-\n  ? &d\n-\n  ? &e\n  : &a\n\u0000",
+      "position": 16,
+      "line": 3,
+      "column": 5
+    },
+    "message": "bad indentation of a sequence entry in \"PW8X.tml\" at line 4, column 6:\n      &a : a\n         ^"
+  }
+}
