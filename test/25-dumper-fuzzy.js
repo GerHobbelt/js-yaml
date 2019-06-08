@@ -49,7 +49,7 @@ suite('Properties', function () {
       }),
     {
       verbose: true,
-      numRuns: 3000,
+      numRuns: 3000
       // seed: 1955227325,
       // path: '68:2:2:2:1:3:2:2:4:3:3:3:3:3:3:4:4:3:3:3:3:4:5:3:10:10:9:8:8:8:8:8:8:8:9:9:9:9:9:9:9:9',
       // endOnFailure: true

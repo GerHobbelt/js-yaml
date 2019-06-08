@@ -323,7 +323,7 @@ function isPlainSafe(c) {
     && c !== CHAR_RIGHT_SQUARE_BRACKET
     && c !== CHAR_LEFT_CURLY_BRACKET
     && c !== CHAR_RIGHT_CURLY_BRACKET
-    // - ":" 
+    // - ":"
     // - "#"
     && c !== CHAR_COLON
     && c !== CHAR_SHARP;
@@ -1306,7 +1306,7 @@ function captureSegment(state, start, end, checkJson) {
     _result = state.input.slice(start, end);
 
     if (checkJson) {
-      for (_position = 0, _length = _result.length; _position < _length; _position++) {
+      for (_position = 0, _length = _result.length; _position < _length; _position += 1) {
         _character = _result.charCodeAt(_position);
         if (!(_character === 0x09 ||
               (0x20 <= _character && _character <= 0x10FFFF))) {
@@ -1330,7 +1330,7 @@ function mergeMappings(state, destination, source, overridableKeys) {
 
   sourceKeys = Object.keys(source);
 
-  for (index = 0, quantity = sourceKeys.length; index < quantity; index++) {
+  for (index = 0, quantity = sourceKeys.length; index < quantity; index += 1) {
     key = sourceKeys[index];
 
     if (!_hasOwnProperty.call(destination, key)) {
@@ -1349,7 +1349,7 @@ function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valu
   if (Array.isArray(keyNode)) {
     keyNode = Array.prototype.slice.call(keyNode);
 
-    for (index = 0, quantity = keyNode.length; index < quantity; index++) {
+    for (index = 0, quantity = keyNode.length; index < quantity; index += 1) {
       if (Array.isArray(keyNode[index])) {
         throwError(state, 'nested arrays are not supported inside keys');
       }
@@ -1377,7 +1377,7 @@ function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valu
 
   if (keyTag === 'tag:yaml.org,2002:merge') {
     if (Array.isArray(valueNode)) {
-      for (index = 0, quantity = valueNode.length; index < quantity; index++) {
+      for (index = 0, quantity = valueNode.length; index < quantity; index += 1) {
         mergeMappings(state, _result, valueNode[index], overridableKeys);
       }
     } else {
@@ -1414,7 +1414,7 @@ function readLineBreak(state) {
     throwError(state, 'a line break is expected');
   }
 
-  state.line++;
+  state.line += 1;
   state.lineStart = state.position;
 }
 
@@ -1446,7 +1446,7 @@ function skipSeparationSpace(state, allowComments, checkIndent) {
       }
 
       if (ch === 0x09/* Tab */) {
-        if (!state.lenient) { 
+        if (!state.lenient) {
           throwError(state, 'A YAML file cannot contain tabs as indentation');
         } else {
           // treat TAB as SPACE:
@@ -1640,7 +1640,7 @@ function readSingleQuotedScalar(state, nodeIndent) {
       } else {
         return true;
       }
-    
+
     } else if (is_EOL(ch)) {
       captureSegment(state, captureStart, captureEnd, true);
       writeFoldedLines(state, skipSeparationSpace(state, false, nodeIndent));
@@ -2055,7 +2055,9 @@ function readBlockSequence(state, nodeIndent) {
     ch = state.input.charCodeAt(state.position);
 
     if ((state.line === _line || state.lineIndent > nodeIndent) && (ch !== 0)) {
-      throwError(state, 'bad indentation of a sequence entry');
+      if (!state.lenient) {
+        throwError(state, 'bad indentation of a sequence entry');
+      }
     } else if (state.lineIndent < nodeIndent) {
       break;
     }
@@ -2125,7 +2127,7 @@ function readBlockMapping(state, nodeIndent, flowIndent) {
         throwError(state, 'incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line');
       }
 
-      state.position++;
+      state.position += 1;
       ch = following;
 
     //
@@ -2202,7 +2204,9 @@ function readBlockMapping(state, nodeIndent, flowIndent) {
     }
 
     if (state.lineIndent > nodeIndent && (ch !== 0)) {
-      throwError(state, 'bad indentation of a mapping entry');
+      if (!state.lenient) {
+        throwError(state, 'bad indentation of a mapping entry');
+      }
     } else if (state.lineIndent < nodeIndent) {
       break;
     }
@@ -2491,7 +2495,7 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
 
   if (state.tag !== null && state.tag !== '!') {
     if (state.tag === '?') {
-      for (typeIndex = 0, typeQuantity = state.implicitTypes.length; typeIndex < typeQuantity; typeIndex++) {
+      for (typeIndex = 0, typeQuantity = state.implicitTypes.length; typeIndex < typeQuantity; typeIndex += 1) {
         type = state.implicitTypes[typeIndex];
 
         // Implicit resolving is not allowed for non-scalar types, and '?'
@@ -2523,11 +2527,7 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
         }
       }
     } else {
-      throwError(state, 'unknown tag !<' + state.tag + '>' + JSON.stringify({
-        kind: state.kind,
-        map: state.typeMap,
-        tag: state.tag,
-      }, null, 2));
+      throwError(state, 'unknown tag !<' + state.tag + '>');
     }
   }
 
@@ -2935,7 +2935,7 @@ Schema.create = function createSchema() {
   return new Schema({
     include: schemas,
     implicit: implicitTypes,
-    explicit: types,
+    explicit: types
   });
 };
 
