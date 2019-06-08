@@ -1,5 +1,5 @@
 {
-  "expectedError": "foo : !!str,\n                  ^",
+  "expectedError": "tag suffix cannot contain flow indicator characters",
   "expectedErrorException": {
     "name": "YAMLException",
     "reason": "tag suffix cannot contain flow indicator characters",

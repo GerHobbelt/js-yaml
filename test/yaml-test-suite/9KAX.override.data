@@ -1,5 +1,5 @@
 {
-  "expectedError": "&a5 !!str key5: value4\n    ^",
+  "expectedError": "duplication of an anchor property",
   "expectedErrorException": {
     "name": "YAMLException",
     "reason": "duplication of an anchor property",

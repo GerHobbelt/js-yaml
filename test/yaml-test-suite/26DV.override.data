@@ -1,5 +1,5 @@
 {
-  "expectedError": "&anchor6 'key6' : scalar6\n                      ^",
+  "expectedError": "incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line",
   "expectedErrorException": {
     "name": "YAMLException",
     "reason": "incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line",

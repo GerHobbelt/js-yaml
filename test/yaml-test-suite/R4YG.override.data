@@ -1,5 +1,5 @@
 {
-  "expectedError": "detected\n     ^",
+  "expectedError": "end of the stream or a document separator is expected",
   "expectedErrorException": {
     "name": "YAMLException",
     "reason": "end of the stream or a document separator is expected",

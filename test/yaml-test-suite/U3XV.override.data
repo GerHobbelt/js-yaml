@@ -1,5 +1,5 @@
 {
-  "expectedError": "&k1 key1: one\n      ^",
+  "expectedError": "duplication of an anchor property",
   "expectedErrorException": {
     "name": "YAMLException",
     "reason": "duplication of an anchor property",

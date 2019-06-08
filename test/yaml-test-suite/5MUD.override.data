@@ -1,5 +1,5 @@
 {
-  "expectedError": ":bar }\n      ^",
+  "expectedError": "missed comma between flow collection entries",
   "expectedErrorException": {
     "name": "YAMLException",
     "reason": "missed comma between flow collection entries",

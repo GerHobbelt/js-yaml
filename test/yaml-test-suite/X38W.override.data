@@ -1,5 +1,5 @@
 {
-  "expectedError": "{ &a [a, &b b]: *b, *a : [c, *b, d]}\n                       ^",
+  "expectedError": "duplicated mapping key",
   "expectedErrorException": {
     "name": "YAMLException",
     "reason": "duplicated mapping key",

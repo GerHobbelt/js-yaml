@@ -97,9 +97,7 @@ function unindent(m, index) {
 
     case '(<)':
         // content is indented; extract indent from the first line, which is probably `    ---`:
-        console.warn("(<) content:", content);
         var indent = getIndentDepth(content);
-        console.warn("unindent level:", indent.length);
         content = content.replace(RegExp("^" + indent, "gm"), "");
         return content;
 
@@ -130,10 +128,6 @@ suite('YAML 1.2 Test Suite', function () {
     if (path.extname(specFile) !== '.tml') return; // continue
 
     var filePath = path.resolve(samplesDir, specFile);
-    console.warn({
-        specFile,
-        filePath
-    });
     var spec = fs.readFileSync(filePath, { encoding: 'utf8' });
     spec = spec
     .replace(/\r\n/g, '\n')
@@ -174,6 +168,7 @@ suite('YAML 1.2 Test Suite', function () {
       inJson = unindent(m, 15);
     }
 
+    if (0) {
     console.warn("scanned spec:", {
         title,
         from,
@@ -187,6 +182,7 @@ suite('YAML 1.2 Test Suite', function () {
         spec,
         m
     });
+    }
 
     // now do a quick check to see if we got all sections out of there:
     assert(title);
@@ -213,7 +209,7 @@ suite('YAML 1.2 Test Suite', function () {
     // Set to 0 (zero) to disable all overrides; 
     // -1 to load any overrides present in the test spec directory.
     // 
-    var updateSollwertFiles = -1;
+    var updateSollwertFiles = 1;
     var hasOverrides = false;
     var overrideFile;
     var overrideData;
@@ -230,11 +226,13 @@ suite('YAML 1.2 Test Suite', function () {
                 if (overrideData.expectedError instanceof Error) {
                     overrideData.expectedErrorException = overrideData.expectedError;
                     var msg = overrideData.expectedError.message;
-                    var colpos = msg.indexOf(':');
+                    msg = msg.replace(/ in "[^]*$/, '');
+                    var colpos = msg.indexOf(':::');
                     if (colpos >= 0) {
                         msg = msg.slice(colpos + 1);
                     }
-                    overrideData.expectedError = msg.replace(/([^":.]+)/, '$1').trim();
+                    //msg = msg.replace(/([^":.]+)/, '$1');
+                    overrideData.expectedError = msg.trim();
                 }
 
                 // also check the validity of the `expectedJSON` blob: some tests produce
@@ -280,7 +278,6 @@ suite('YAML 1.2 Test Suite', function () {
             .replace(/\nnull/g, ',\nnull')     // doc delivers NULL
             ;
             multidocJson = "[\n" + multidocJson + "\n]";
-            // console.warn("multidoc json spec:", multidocJson);
             expectedJson = JSON.parse(multidocJson);
         }
     }           
@@ -300,7 +297,7 @@ suite('YAML 1.2 Test Suite', function () {
     // not exactly like the stuff written in the spec files, so comparing
     // YAML input with the round-tripped stuff is only a last resort in
     // the test rig.
-    if (expectedJson === void 0) {
+    if (expectedJson === void 0 && expectedYaml !== void 0) {
         try {
             // decode spec YAML if possible:
             expectedJson = yaml.safeLoadAll(expectedYaml, null, {
@@ -309,12 +306,18 @@ suite('YAML 1.2 Test Suite', function () {
             });
             if (expectedJson && expectedJson.length === 1) expectedJson = expectedJson[0];
         } catch (ex) {
-            // regrettably we cannot parse the reference YAML either...
-            console.error("Regrettably we cannot parse the reference YAML:", expectedYaml, ex);
+            // only mention parse failure when we're trying to load an actual
+            // *reference* YAML value instead of setting up for round-tripping
+            // input YAML to input YAML:
+            if (expectedYaml !== inYaml) {
+                // regrettably we cannot parse the reference YAML either...
+                console.error("Regrettably we cannot parse the reference YAML:", expectedYaml, ex);
+            }
             expectedJson = void 0;
         }
     }
 
+    if (0) {
     console.warn("Picking reference output:", {
         file: specFile,
         inJSON: inJson,
@@ -324,6 +327,7 @@ suite('YAML 1.2 Test Suite', function () {
         expectedYAML: expectedYaml, 
         overrides: overrideData,
     });
+    }
 
     if (overrideData.expectedJSON !== void 0) {
         expectedJson = overrideData.expectedJSON;
