@@ -225,7 +225,7 @@ suite('YAML 1.2 Test Suite', function () {
     // Set to 0 (zero) to disable all overrides;
     // -1 to load any overrides present in the test spec directory.
     //
-    var updateSollwertFiles = 1;
+    var updateSollwertFiles = -1;
     var hasOverrides = false;
     var overrideData;
 
