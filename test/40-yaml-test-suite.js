@@ -227,11 +227,6 @@ suite('YAML 1.2 Test Suite', function () {
                     overrideData.expectedErrorException = overrideData.expectedError;
                     var msg = overrideData.expectedError.message;
                     msg = msg.replace(/ in "[^]*$/, '');
-                    var colpos = msg.indexOf(':::');
-                    if (colpos >= 0) {
-                        msg = msg.slice(colpos + 1);
-                    }
-                    //msg = msg.replace(/([^":.]+)/, '$1');
                     overrideData.expectedError = msg.trim();
                 }
 
