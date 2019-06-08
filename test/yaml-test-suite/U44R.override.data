@@ -1,0 +1,9 @@
+{
+  "expectedError": false,
+  "expectedJSON": {
+    "map": {
+      "key1": "quoted1",
+      "key2": "bad indentation"
+    }
+  }
+}

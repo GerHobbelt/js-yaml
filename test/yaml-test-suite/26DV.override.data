@@ -2,7 +2,7 @@
   "expectedError": "&anchor6 'key6' : scalar6\n                      ^",
   "expectedErrorException": {
     "name": "YAMLException",
-    "reason": "bad indentation of a mapping entry",
+    "reason": "incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line",
     "mark": {
       "name": "26DV.tml",
       "buffer": "\"top1\" : \n  \"key1\" : &alias1 scalar1\n'top2' : \n  'key2' : &alias2 scalar2\ntop3: &node3 \n  *alias1 : scalar3\ntop4: \n  *alias2 : scalar4\ntop5   :    \n  scalar5\ntop6: \n  &anchor6 'key6' : scalar6\n\u0000",
@@ -10,6 +10,6 @@
       "line": 11,
       "column": 18
     },
-    "message": "bad indentation of a mapping entry in \"26DV.tml\" at line 12, column 19:\n      &anchor6 'key6' : scalar6\n                      ^"
+    "message": "incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line in \"26DV.tml\" at line 12, column 19:\n      &anchor6 'key6' : scalar6\n                      ^"
   }
 }
