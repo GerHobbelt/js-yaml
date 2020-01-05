@@ -716,9 +716,10 @@ function writeFlowMapping(state, level, object) {
       pairBuffer;
 
   for (index = 0, length = objectKeyList.length; index < length; index += 1) {
-    pairBuffer = state.quoteKeys || '';
-
+    pairBuffer = '';
     if (index !== 0) pairBuffer += ', ';
+
+    //if (state.condenseFlow) pairBuffer += '"';
 
     objectKey = objectKeyList[index];
     objectValue = object[objectKey];
@@ -731,7 +732,7 @@ function writeFlowMapping(state, level, object) {
     if (state.dump.length > 1024) pairBuffer += '? ';
 
     pairBuffer += state.dump;
-    pairBuffer += state.quoteKeys || '';
+    //pairBuffer += state.quoteKeys || '';
     pairBuffer += ':';
     if (!state.condenseFlow) {
       pairBuffer += ' ';
