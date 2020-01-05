@@ -14,6 +14,7 @@ test('should not indent arrays an extra level when disabled', function () {
       },
       {
         a: 'a2_val',
+        expanded: true,
         items: [
           {
             a: 'a_a_val',
@@ -24,6 +25,6 @@ test('should not indent arrays an extra level when disabled', function () {
     ],
     { noArrayIndent: true }
   );
-  var expected = '- a: a_val\n  b: b_val\n- a: a2_val\n  items:\n  - a: a_a_val\n    b: a_b_val\n';
+  var expected = '- a: a_val\n  b: b_val\n- a: a2_val\n  exapanded: true,\n  items:\n  - a: a_a_val\n    b: a_b_val\n';
   assert.strictEqual(output, expected);
 });
