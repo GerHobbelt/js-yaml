@@ -236,11 +236,13 @@ function State(options) {
   // accept a `quoteKeys` option *explicitly* set to FALSE:
   this.quoteKeys     = (options['quoteKeys'] != null ? options['quoteKeys'] : !!this.condenseFlow);
   if (this.quoteKeys) {
-    if (this.quoteKeys === true) {
+    // all truthy `quoteKeys` values will be converted to one of the accepted quotes: 
+    // no surprises on flaky config input.
+    if (this.quoteKeys !== '\'' && this.quoteKeys !== '"') {
       this.quoteKeys = '"';
-    } else if (this.quoteKeys !== '\'' && this.quoteKeys !== '"') {
-      this.quoteKeys = false;
     }
+  } else {
+    this.quoteKeys = false;
   }
 
   this.implicitTypes = this.schema.compiledImplicit;
@@ -475,12 +477,15 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
 function writeScalar(state, string, level, iskey) {
   state.dump = (function () {
     if (string.length === 0) {
-      if (state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_DOUBLE) {
+      if (!iskey && state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_DOUBLE) {
+        return '""';
+      }
+      else if (iskey && state.quoteKeys === '"') {
         return '""';
       }
       return "''";
     }
-    if (!state.noCompatMode &&
+    if (!state.noCompatMode && !iskey &&
         DEPRECATED_BOOLEANS_SYNTAX.indexOf(string) !== -1) {
       if (state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_DOUBLE) {
         return '"' + string + '"';
@@ -513,6 +518,13 @@ function writeScalar(state, string, level, iskey) {
       if (state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_SINGLE) {
         scalarStyle = STYLE_SINGLE;
       } else if (state.scalarQuoteStyle === SCALAR_QUOTE_STYLE_DOUBLE) {
+        scalarStyle = STYLE_DOUBLE;
+      }
+    }
+    else if (iskey && (scalarStyle === STYLE_DOUBLE || scalarStyle === STYLE_SINGLE || state.quoteKeys !== false)) {
+      if (state.quoteKeys === "'") {
+        scalarStyle = STYLE_SINGLE;
+      } else if (state.quoteKeys === '"') {
         scalarStyle = STYLE_DOUBLE;
       }
     }
@@ -719,20 +731,17 @@ function writeFlowMapping(state, level, object) {
     pairBuffer = '';
     if (index !== 0) pairBuffer += ', ';
 
-    //if (state.condenseFlow) pairBuffer += '"';
-
     objectKey = objectKeyList[index];
     objectValue = object[objectKey];
 
     //           (state, level, object, block, compact, iskey)
-    if (!writeNode(state, level, objectKey, false, false, false)) {
+    if (!writeNode(state, level, objectKey, false, false, true)) {
       continue; // Skip this pair because of invalid key;
     }
 
     if (state.dump.length > 1024) pairBuffer += '? ';
 
     pairBuffer += state.dump;
-    //pairBuffer += state.quoteKeys || '';
     pairBuffer += ':';
     if (!state.condenseFlow) {
       pairBuffer += ' ';
